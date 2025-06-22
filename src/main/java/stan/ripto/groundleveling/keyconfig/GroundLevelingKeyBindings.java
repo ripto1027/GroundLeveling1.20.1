@@ -7,5 +7,10 @@ import net.minecraftforge.client.settings.KeyModifier;
 import org.lwjgl.glfw.GLFW;
 
 public class GroundLevelingKeyBindings {
-    public static final KeyMapping TOGGLE_DESTROY = new KeyMapping("key.groudleveling.toggle_destroy", KeyConflictContext.IN_GAME, KeyModifier.NONE, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_M, "Ground Leveling");
+    private static final String LANGUAGE_KEY = "key.groudleveling.toggle_destroy";
+    public static final KeyMapping TOGGLE_DESTROY = new KeyMapping(LANGUAGE_KEY, KeyConflictContext.IN_GAME, KeyModifier.NONE, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, "Ground Leveling");
+
+    public static String getLanguageKey() {
+        return LANGUAGE_KEY;
+    }
 }
