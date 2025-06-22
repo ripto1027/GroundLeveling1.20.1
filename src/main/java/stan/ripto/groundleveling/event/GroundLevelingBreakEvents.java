@@ -35,7 +35,7 @@ public class GroundLevelingBreakEvents {
 
         Player p = event.getPlayer();
         Level l = p.level();
-        if (l.isClientSide() || !(l instanceof ServerLevel level) || p.isCreative()) return;
+        if (l.isClientSide() || !(l instanceof ServerLevel level) || p.isCreative() || p.isShiftKeyDown()) return;
 
         BlockPos origin = event.getPos();
         boolean mode = isLogs(level, origin);
