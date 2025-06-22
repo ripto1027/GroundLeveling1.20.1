@@ -61,8 +61,8 @@ public class GroundLevelingBreakEvents {
         BlockState state = level.getBlockState(pos);
         List<ItemStack> drops = Block.getDrops(state, level, pos, null, null, tool);
         int fortune = tool.getEnchantmentLevel(Enchantments.BLOCK_FORTUNE);
-        int silk = tool.getEnchantmentLevel(Enchantments.SILK_TOUCH);
-        int exp = state.getExpDrop(level, level.random, pos, fortune, silk);
+        int silkTouch = tool.getEnchantmentLevel(Enchantments.SILK_TOUCH);
+        int exp = state.getExpDrop(level, level.random, pos, fortune, silkTouch);
         level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
 
         for (ItemStack drop : drops) {
