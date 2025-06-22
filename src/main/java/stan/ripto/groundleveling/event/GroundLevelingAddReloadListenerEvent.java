@@ -3,6 +3,7 @@ package stan.ripto.groundleveling.event;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
+import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -16,16 +17,24 @@ import java.util.List;
 import java.util.Set;
 
 @Mod.EventBusSubscriber(modid = GroundLeveling.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
-public class GroundLevelingServerStartedEvents {
+public class GroundLevelingAddReloadListenerEvent {
     private static Set<String> enables;
     private static Set<String> trees;
     private static Set<String> leaves;
 
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
+        loadConfig();
+    }
+
+    @SubscribeEvent
+    public static void onAddReloadListener(AddReloadListenerEvent event) {
+        loadConfig();
+    }
+
+    public static void loadConfig() {
         List<? extends String> breakableBlocks = GroundLevelingConfigs.getBreakableBlock();
         List<? extends String> breakableTreeBlocks = GroundLevelingConfigs.getTreeBreakableBlock();
-
 
         enables = setIds(breakableBlocks);
         trees = setIds(breakableTreeBlocks);

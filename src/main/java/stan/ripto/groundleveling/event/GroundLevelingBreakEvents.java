@@ -21,13 +21,13 @@ import stan.ripto.groundleveling.config.GroundLevelingConfigs;
 import java.util.*;
 
 public class GroundLevelingBreakEvents {
-    private static final Set<String> enable = GroundLevelingServerStartedEvents.getEnables();
-    private static final Set<String> trees = GroundLevelingServerStartedEvents.getTrees();
-    private static final Set<String> leaves = GroundLevelingServerStartedEvents.getLeaves();
+    private static Set<String> enable;
+    private static final Set<String> trees = GroundLevelingAddReloadListenerEvent.getTrees();
+    private static final Set<String> leaves = GroundLevelingAddReloadListenerEvent.getLeaves();
     private static Direction face;
-    private static final int width = GroundLevelingConfigs.getWidth();
-    private static final int height = GroundLevelingConfigs.getHeight();
-    private static final int depth = GroundLevelingConfigs.getDepth();
+    private static int width;
+    private static int height;
+    private static int depth;
 
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
@@ -37,6 +37,10 @@ public class GroundLevelingBreakEvents {
         Level l = p.level();
         if (l.isClientSide() || !(l instanceof ServerLevel level) || p.isCreative() || p.isShiftKeyDown()) return;
 
+        enable = GroundLevelingAddReloadListenerEvent.getEnables();
+        width = GroundLevelingConfigs.getWidth();
+        height = GroundLevelingConfigs.getHeight();
+        depth = GroundLevelingConfigs.getDepth();
         BlockPos origin = event.getPos();
         boolean mode = isLogs(level, origin);
         ItemStack tool = p.getMainHandItem();
@@ -109,6 +113,9 @@ public class GroundLevelingBreakEvents {
             breaker(level, current, player, tool);
             setDamage(tool, player);
 
+            int currentDamage = tool.getMaxDamage() - tool.getDamageValue();
+            if (currentDamage == 0) break;
+
             for (Direction dir : Direction.values()) {
                 BlockPos next = current.relative(dir);
 
@@ -175,6 +182,9 @@ public class GroundLevelingBreakEvents {
             String id = level.getBlockState(current).getBlock().getName().getString();
             breaker(level, current, player, tool);
             if (!leaves.contains(id)) setDamage(tool, player);
+
+            int currentDamage = tool.getMaxDamage() - tool.getDamageValue();
+            if (currentDamage == 0) break;
 
             for (int x = -1; x <= 1; x++) {
                 for (int y = -1; y <= 1; y++) {

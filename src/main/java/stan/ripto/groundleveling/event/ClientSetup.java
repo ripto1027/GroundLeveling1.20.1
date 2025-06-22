@@ -10,9 +10,14 @@ import stan.ripto.groundleveling.keyconfig.GroundLevelingKeyBindings;
 public class ClientSetup {
     private ClientSetup() {}
     private static boolean toggle;
+    private static final String MODE_CHANGE_MESSAGE_KEY = "message.groundleveling.mode_change";
 
     public static boolean getToggle() {
         return toggle;
+    }
+
+    public static String getModeChangeMessageKey() {
+        return MODE_CHANGE_MESSAGE_KEY;
     }
 
     @SubscribeEvent
@@ -25,7 +30,7 @@ public class ClientSetup {
         if (Minecraft.getInstance().player != null) {
             if (GroundLevelingKeyBindings.TOGGLE_DESTROY.isDown()) {
                 toggle = !toggle;
-                Minecraft.getInstance().player.displayClientMessage(Component.literal("一括破壊: " + (toggle ? "ON" : "OFF")), true);
+                Minecraft.getInstance().player.displayClientMessage(Component.translatable(MODE_CHANGE_MESSAGE_KEY, toggle ? "ON" : "OFF"), true);
             }
         }
     }
