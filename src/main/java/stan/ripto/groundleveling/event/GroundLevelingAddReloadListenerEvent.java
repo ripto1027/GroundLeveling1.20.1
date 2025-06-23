@@ -18,9 +18,9 @@ import java.util.Set;
 
 @Mod.EventBusSubscriber(modid = GroundLeveling.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class GroundLevelingAddReloadListenerEvent {
-    private static Set<String> enables;
-    private static Set<String> trees;
-    private static Set<String> leaves;
+    private static Set<Block> enables;
+    private static Set<Block> trees;
+    private static Set<Block> leaves;
 
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
@@ -41,8 +41,8 @@ public class GroundLevelingAddReloadListenerEvent {
         leaves = setIds("#minecraft:leaves");
     }
 
-    private static Set<String> setIds(List<? extends String> list) {
-        Set<String> ids = new HashSet<>();
+    private static Set<Block> setIds(List<? extends String> list) {
+        Set<Block> ids = new HashSet<>();
 
         for (String l : list) {
             ResourceLocation location;
@@ -51,13 +51,13 @@ public class GroundLevelingAddReloadListenerEvent {
                 TagKey<Block> key = TagKey.create(ForgeRegistries.Keys.BLOCKS, location);
                 ITagManager<Block> manager = ForgeRegistries.BLOCKS.tags();
                 if (manager != null) {
-                    manager.getTag(key).forEach(b -> ids.add(b.getName().getString()));
+                    manager.getTag(key).forEach(ids::add);
                 }
             } else {
                 location = ResourceLocation.parse(l);
                 Block b = ForgeRegistries.BLOCKS.getValue(location);
                 if (b != null) {
-                    ids.add(b.getName().getString());
+                    ids.add(b);
                 }
             }
         }
@@ -65,8 +65,8 @@ public class GroundLevelingAddReloadListenerEvent {
         return ids;
     }
 
-    private static Set<String> setIds(String loc) {
-        Set<String> ids = new HashSet<>();
+    private static Set<Block> setIds(String loc) {
+        Set<Block> ids = new HashSet<>();
 
         ResourceLocation location;
         if (loc.startsWith("#")) {
@@ -74,27 +74,27 @@ public class GroundLevelingAddReloadListenerEvent {
             TagKey<Block> key = TagKey.create(ForgeRegistries.Keys.BLOCKS, location);
             ITagManager<Block> manager = ForgeRegistries.BLOCKS.tags();
             if (manager != null) {
-                manager.getTag(key).forEach(b -> ids.add(b.getName().getString()));
+                manager.getTag(key).forEach(ids::add);
             }
         } else {
             location = ResourceLocation.parse(loc);
             Block b = ForgeRegistries.BLOCKS.getValue(location);
             if (b != null) {
-                ids.add(b.getName().getString());
+                ids.add(b);
             }
         }
         return ids;
     }
 
-    public static Set<String> getEnables() {
+    public static Set<Block> getEnables() {
         return enables;
     }
 
-    public static Set<String> getTrees() {
+    public static Set<Block> getTrees() {
         return trees;
     }
 
-    public static Set<String> getLeaves() {
+    public static Set<Block> getLeaves() {
         return leaves;
     }
 }

@@ -21,9 +21,9 @@ import stan.ripto.groundleveling.config.GroundLevelingConfigs;
 import java.util.*;
 
 public class GroundLevelingBreakEvents {
-    private static Set<String> enable;
-    private static final Set<String> trees = GroundLevelingAddReloadListenerEvent.getTrees();
-    private static final Set<String> leaves = GroundLevelingAddReloadListenerEvent.getLeaves();
+    private static Set<Block> enable;
+    private static final Set<Block> trees = GroundLevelingAddReloadListenerEvent.getTrees();
+    private static final Set<Block> leaves = GroundLevelingAddReloadListenerEvent.getLeaves();
     private static Direction face;
     private static int width;
     private static int height;
@@ -63,7 +63,14 @@ public class GroundLevelingBreakEvents {
 
     private static void breaker(ServerLevel level, BlockPos pos, Player player, ItemStack tool) {
         BlockState state = level.getBlockState(pos);
-        List<ItemStack> drops = Block.getDrops(state, level, pos, null, null, tool);
+
+        List<ItemStack> drops;
+        if (ForgeHooks.isCorrectToolForDrops(state, player)) {
+            drops = Block.getDrops(state, level, pos, null, null, tool);
+        } else {
+            drops = Block.getDrops(state, level, pos, null);
+        }
+
         int fortune = tool.getEnchantmentLevel(Enchantments.BLOCK_FORTUNE);
         int silkTouch = tool.getEnchantmentLevel(Enchantments.SILK_TOUCH);
         int exp = state.getExpDrop(level, level.random, pos, fortune, silkTouch);
@@ -86,17 +93,16 @@ public class GroundLevelingBreakEvents {
     }
 
     private static boolean isLogs(ServerLevel level, BlockPos pos) {
-        return trees.contains(level.getBlockState(pos).getBlock().getName().getString());
+        return trees.contains(level.getBlockState(pos).getBlock());
     }
 
     private static boolean rangeBreaker(ServerLevel level, BlockPos pos, Player player, ItemStack tool) {
         BlockState state = level.getBlockState(pos);
-        String id = state.getBlock().getName().getString();
 
         breaker(level, pos, player, tool);
         setDamage(tool, player);
 
-        return isRangeBreakable(id, pos, player, state);
+        return isRangeBreakable(pos, player, state);
     }
 
     private static void afterFirstRangeBreaker(ServerLevel level, BlockPos origin, Player player, ItemStack tool) {
@@ -110,11 +116,10 @@ public class GroundLevelingBreakEvents {
             BlockPos current = queue.poll();
             if (current == null) continue;
 
+            if (tool.isEmpty()) break;
+
             breaker(level, current, player, tool);
             setDamage(tool, player);
-
-            int currentDamage = tool.getMaxDamage() - tool.getDamageValue();
-            if (currentDamage == 0) break;
 
             for (Direction dir : Direction.values()) {
                 BlockPos next = current.relative(dir);
@@ -122,8 +127,7 @@ public class GroundLevelingBreakEvents {
                 if (visited.contains(next)) continue;
 
                 BlockState state = level.getBlockState(next);
-                String id = state.getBlock().getName().getString();
-                if (!isRangeBreakable(id, next, player, state)) continue;
+                if (!isRangeBreakable(next, player, state)) continue;
 
                 int dw = 0;
                 int dh = next.getY() - origin.getY();
@@ -154,18 +158,17 @@ public class GroundLevelingBreakEvents {
         }
     }
 
-    private static boolean isRangeBreakable(String id, BlockPos pos, Player player, BlockState state) {
-        return enable.contains(id) && !(pos.getY() < player.getY()) && !player.isCreative() && !player.isShiftKeyDown() && ForgeHooks.isCorrectToolForDrops(state, player);
+    private static boolean isRangeBreakable(BlockPos pos, Player player, BlockState state) {
+        return enable.contains(state.getBlock()) && !(pos.getY() < player.getY()) && !player.isCreative() && !player.isShiftKeyDown() && ForgeHooks.isCorrectToolForDrops(state, player);
     }
 
     private static boolean treeBreaker(ServerLevel level, BlockPos pos, Player player, ItemStack tool) {
-        BlockState state = level.getBlockState(pos);
-        String id = state.getBlock().getName().getString();
+        Block block = level.getBlockState(pos).getBlock();
 
         breaker(level, pos, player, tool);
         setDamage(tool, player);
 
-        return isTreeBreakable(id, player);
+        return isTreeBreakable(player, block);
     }
 
     private static void afterFirstTreeBreaker(ServerLevel level, BlockPos pos, Player player, ItemStack tool) {
@@ -179,12 +182,11 @@ public class GroundLevelingBreakEvents {
             BlockPos current = queue.poll();
             if (current == null) continue;
 
-            String id = level.getBlockState(current).getBlock().getName().getString();
-            breaker(level, current, player, tool);
-            if (!leaves.contains(id)) setDamage(tool, player);
+            if (tool.isEmpty()) break;
 
-            int currentDamage = tool.getMaxDamage() - tool.getDamageValue();
-            if (currentDamage == 0) break;
+            Block currentBlock = level.getBlockState(current).getBlock();
+            breaker(level, current, player, tool);
+            if (!leaves.contains(currentBlock)) setDamage(tool, player);
 
             for (int x = -1; x <= 1; x++) {
                 for (int y = -1; y <= 1; y++) {
@@ -193,8 +195,8 @@ public class GroundLevelingBreakEvents {
 
                         if (visited.contains(next)) continue;
 
-                        String nextId = level.getBlockState(next).getBlock().getName().getString();
-                        if (!isTreeBreakable(nextId, player)) continue;
+                        Block nextBlock = level.getBlockState(next).getBlock();
+                        if (!isTreeBreakable(player, nextBlock)) continue;
 
                         visited.add(next);
                         queue.add(next);
@@ -204,7 +206,7 @@ public class GroundLevelingBreakEvents {
         }
     }
 
-    private static boolean isTreeBreakable(String id, Player player) {
-        return trees.contains(id) && !player.isCreative() && !player.isShiftKeyDown();
+    private static boolean isTreeBreakable(Player player, Block block) {
+        return trees.contains(block) && !player.isCreative() && !player.isShiftKeyDown();
     }
 }

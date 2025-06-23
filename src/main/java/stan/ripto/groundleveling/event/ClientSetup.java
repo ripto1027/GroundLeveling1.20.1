@@ -2,6 +2,7 @@ package stan.ripto.groundleveling.event;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -27,10 +28,11 @@ public class ClientSetup {
 
     @SubscribeEvent
     public static void onKeyInput(InputEvent.Key event) {
-        if (Minecraft.getInstance().player != null) {
+        Player player = Minecraft.getInstance().player;
+        if (player != null) {
             if (GroundLevelingKeyBindings.TOGGLE_DESTROY.isDown()) {
                 toggle = !toggle;
-                Minecraft.getInstance().player.displayClientMessage(Component.translatable(MODE_CHANGE_MESSAGE_KEY, toggle ? "ON" : "OFF"), true);
+                player.displayClientMessage(Component.translatable(MODE_CHANGE_MESSAGE_KEY, toggle ? "ON" : "OFF"), true);
             }
         }
     }
