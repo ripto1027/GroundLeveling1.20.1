@@ -3,6 +3,7 @@ package stan.ripto.groundleveling.event;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -11,8 +12,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.GameMasterBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -28,84 +31,110 @@ public class GroundLevelingBreakEvents {
     private static int width;
     private static int height;
     private static int depth;
+    private static boolean isInProgress = false;
+    private static int exp;
 
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
-        if (!ClientSetup.getToggle()) return;
+        if (!ClientSetup.getToggle() || isInProgress) return;
 
+        isInProgress = true;
         Player p = event.getPlayer();
         Level l = p.level();
-        if (l.isClientSide() || !(l instanceof ServerLevel level) || p.isCreative() || p.isShiftKeyDown()) return;
+        face = ClickedFaceRecorderEvents.CLICK_FACE.get(p.getUUID());
+        if (l.isClientSide() || !(p instanceof ServerPlayer player) || !(l instanceof ServerLevel level) || p.isShiftKeyDown() || face == Direction.DOWN || face == Direction.UP) {
+            isInProgress = false;
+            return;
+        }
 
         enable = GroundLevelingAddReloadListenerEvent.getEnables();
         width = GroundLevelingConfigs.getWidth();
         height = GroundLevelingConfigs.getHeight();
         depth = GroundLevelingConfigs.getDepth();
         BlockPos origin = event.getPos();
-        boolean mode = isLogs(level, origin);
-        ItemStack tool = p.getMainHandItem();
-        event.setCanceled(true);
-
-        if (mode) {
-            if (!treeBreaker(level, origin, p, tool)) return;
-        } else {
-            if (!rangeBreaker(level, origin, p, tool)) return;
-            face = ClickedFaceRecorderEvents.CLICK_FACE.get(p.getUUID());
-            if (face == Direction.UP || face == Direction.DOWN) return;
+        ItemStack tool = player.getMainHandItem();
+        Block originBlock = level.getBlockState(origin).getBlock();
+        if (!enable.contains(originBlock)) {
+            isInProgress = false;
+            return;
         }
 
-        if (mode) {
-            afterFirstTreeBreaker(level, origin, p, tool);
+        if (isLogs(level, origin)) {
+            treeBreaker(level, origin, player, tool);
         } else {
-            afterFirstRangeBreaker(level, origin, p, tool);
+            rangeBreaker(level, origin, player, tool);
+        }
+
+        isInProgress = false;
+    }
+
+    public static boolean destroyBlock(ServerLevel level, BlockPos pos, ServerPlayer player) {
+        BlockState state = level.getBlockState(pos);
+        int fortune = player.getMainHandItem().getEnchantmentLevel(Enchantments.BLOCK_FORTUNE);
+        int silk = player.getMainHandItem().getEnchantmentLevel(Enchantments.SILK_TOUCH);
+        exp = state.getExpDrop(level, level.random, pos, fortune, silk);
+        if (exp == -1) {
+            return false;
+        } else {
+            BlockEntity blockentity = level.getBlockEntity(pos);
+            Block block = state.getBlock();
+            if (block instanceof GameMasterBlock && !player.canUseGameMasterBlocks()) {
+                level.sendBlockUpdated(pos, state, state, 3);
+                return false;
+            } else if (player.getMainHandItem().onBlockStartBreak(pos, player)) {
+                return false;
+            } else if (player.blockActionRestricted(level, pos, player.gameMode.getGameModeForPlayer())) {
+                return false;
+            } else {
+                if (player.isCreative()) {
+                    removeBlock(level, pos, player, state, false);
+                } else {
+                    ItemStack stack = player.getMainHandItem();
+                    ItemStack stackCopy = stack.copy();
+                    boolean flag1 = state.canHarvestBlock(level, pos, player);
+                    stack.mineBlock(level, state, pos, player);
+                    if (stack.isEmpty() && !stackCopy.isEmpty())
+                        net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, stackCopy, InteractionHand.MAIN_HAND);
+                    boolean flag = removeBlock(level, pos, player, state, flag1);
+
+                    if (flag && flag1) {
+                        block.playerDestroy(level, player, pos, state, blockentity, stackCopy);
+                    }
+                }
+                return true;
+            }
         }
     }
 
-    private static void breaker(ServerLevel level, BlockPos pos, Player player, ItemStack tool) {
-        BlockState state = level.getBlockState(pos);
+    private static boolean removeBlock(ServerLevel level, BlockPos pos, Player player, BlockState state, boolean canHarvest) {
+        boolean removed = state.onDestroyedByPlayer(level, pos, player, canHarvest, level.getFluidState(pos));
+        if (removed)
+            state.getBlock().destroy(level, pos, state);
+        return removed;
+    }
 
-        List<ItemStack> drops;
-        if (ForgeHooks.isCorrectToolForDrops(state, player)) {
-            drops = Block.getDrops(state, level, pos, null, null, tool);
-        } else {
-            drops = Block.getDrops(state, level, pos, null);
-        }
-
-        int fortune = tool.getEnchantmentLevel(Enchantments.BLOCK_FORTUNE);
-        int silkTouch = tool.getEnchantmentLevel(Enchantments.SILK_TOUCH);
-        int exp = state.getExpDrop(level, level.random, pos, fortune, silkTouch);
-        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
-
-        for (ItemStack drop : drops) {
-            ItemEntity d = new ItemEntity(level, player.getX(), player.getY(), player.getZ(), drop.copy());
-            d.setPickUpDelay(0);
-            level.addFreshEntity(d);
-        }
+    private static void dropsWarp(BlockPos pos, ServerLevel level, ServerPlayer player) {
+        double x = player.getX();
+        double y = player.getY();
+        double z = player.getZ();
+        AABB box = new AABB(pos).inflate(0.5);
+        List<ItemEntity> drops = level.getEntitiesOfClass(ItemEntity.class, box);
+        drops.forEach(drop -> {
+            drop.setPos(x, y, z);
+            drop.setPickUpDelay(0);
+        });
 
         if (exp > 0) {
-            ExperienceOrb orb = new ExperienceOrb(level, player.getX(), player.getY(), player.getZ(), exp);
+            ExperienceOrb orb = new ExperienceOrb(level, x, y, z, exp);
             level.addFreshEntity(orb);
         }
-    }
-
-    private static void setDamage(ItemStack tool, Player player) {
-        tool.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(InteractionHand.MAIN_HAND));
     }
 
     private static boolean isLogs(ServerLevel level, BlockPos pos) {
         return trees.contains(level.getBlockState(pos).getBlock());
     }
 
-    private static boolean rangeBreaker(ServerLevel level, BlockPos pos, Player player, ItemStack tool) {
-        BlockState state = level.getBlockState(pos);
-
-        breaker(level, pos, player, tool);
-        setDamage(tool, player);
-
-        return isRangeBreakable(pos, player, state);
-    }
-
-    private static void afterFirstRangeBreaker(ServerLevel level, BlockPos origin, Player player, ItemStack tool) {
+    private static void rangeBreaker(ServerLevel level, BlockPos origin, ServerPlayer player, ItemStack tool) {
         Set<BlockPos> visited = new HashSet<>();
         visited.add(origin);
 
@@ -116,10 +145,13 @@ public class GroundLevelingBreakEvents {
             BlockPos current = queue.poll();
             if (current == null) continue;
 
-            if (tool.isEmpty()) break;
+            if (tool.isEmpty() || !tool.isDamageableItem() || tool.getDamageValue() >= tool.getMaxDamage()) break;
 
-            breaker(level, current, player, tool);
-            setDamage(tool, player);
+            if (destroyBlock(level, current, player)) {
+                dropsWarp(current, level, player);
+            } else {
+                continue;
+            }
 
             for (Direction dir : Direction.values()) {
                 BlockPos next = current.relative(dir);
@@ -159,19 +191,10 @@ public class GroundLevelingBreakEvents {
     }
 
     private static boolean isRangeBreakable(BlockPos pos, Player player, BlockState state) {
-        return enable.contains(state.getBlock()) && !(pos.getY() < player.getY()) && !player.isCreative() && !player.isShiftKeyDown() && ForgeHooks.isCorrectToolForDrops(state, player);
+        return enable.contains(state.getBlock()) && !(pos.getY() < player.getY()) && !player.isShiftKeyDown() && !player.isCreative() && ForgeHooks.isCorrectToolForDrops(state, player);
     }
 
-    private static boolean treeBreaker(ServerLevel level, BlockPos pos, Player player, ItemStack tool) {
-        Block block = level.getBlockState(pos).getBlock();
-
-        breaker(level, pos, player, tool);
-        setDamage(tool, player);
-
-        return isTreeBreakable(player, block);
-    }
-
-    private static void afterFirstTreeBreaker(ServerLevel level, BlockPos pos, Player player, ItemStack tool) {
+    private static void treeBreaker(ServerLevel level, BlockPos pos, ServerPlayer player, ItemStack tool) {
         Set<BlockPos> visited = new HashSet<>();
         visited.add(pos);
 
@@ -182,11 +205,13 @@ public class GroundLevelingBreakEvents {
             BlockPos current = queue.poll();
             if (current == null) continue;
 
-            if (tool.isEmpty()) break;
+            if (!tool.isDamageableItem() || tool.getDamageValue() >= tool.getMaxDamage()) {
+                if (!tool.isEmpty()) break;
+            }
 
             Block currentBlock = level.getBlockState(current).getBlock();
-            breaker(level, current, player, tool);
-            if (!leaves.contains(currentBlock)) setDamage(tool, player);
+            if (destroyBlock(level, current, player)) dropsWarp(current, level, player);
+            if (!leaves.contains(currentBlock)) tool.setDamageValue(tool.getDamageValue() + 1);
 
             for (int x = -1; x <= 1; x++) {
                 for (int y = -1; y <= 1; y++) {
