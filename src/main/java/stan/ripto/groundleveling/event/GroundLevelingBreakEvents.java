@@ -10,6 +10,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.GameMasterBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -38,10 +39,10 @@ public class GroundLevelingBreakEvents {
         if (!ClientSetup.getToggle() || isInProgress) return;
 
         isInProgress = true;
-        ServerPlayer p = (ServerPlayer) event.getPlayer();
-        ServerLevel l = (ServerLevel) p.level();
+        Player p = event.getPlayer();
+        Level l = p.level();
         face = ClickedFaceRecorderEvents.CLICK_FACE.get(p.getUUID());
-        if (l.isClientSide() || p.isShiftKeyDown() || face == Direction.DOWN || face == Direction.UP) {
+        if (l.isClientSide() || !(p instanceof ServerPlayer player) || !(l instanceof ServerLevel level) || p.isShiftKeyDown() || face == Direction.DOWN || face == Direction.UP) {
             isInProgress = false;
             return;
         }
@@ -51,17 +52,17 @@ public class GroundLevelingBreakEvents {
         height = GroundLevelingConfigs.getHeight();
         depth = GroundLevelingConfigs.getDepth();
         BlockPos origin = event.getPos();
-        ItemStack tool = p.getMainHandItem();
-        Block originBlock = l.getBlockState(origin).getBlock();
+        ItemStack tool = player.getMainHandItem();
+        Block originBlock = level.getBlockState(origin).getBlock();
         if (!enable.contains(originBlock)) {
             isInProgress = false;
             return;
         }
 
-        if (isLogs(l, origin)) {
-            treeBreaker(l, origin, p, tool);
+        if (isLogs(level, origin)) {
+            treeBreaker(level, origin, player, tool);
         } else {
-            rangeBreaker(l, origin, p);
+            rangeBreaker(level, origin, player);
         }
 
         isInProgress = false;
