@@ -56,10 +56,15 @@ minecraft {
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
+    maven {
+        url "https://www.cursemaven.com"
+    }
 }
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    runtimeOnly fg.deobf("curse.maven:tinkers-construct-74072:6635554")
+    runtimeOnly fg.deobf("curse.maven:mantle-74924:6642332")
 }
 
 tasks.named('processResources', ProcessResources).configure {
