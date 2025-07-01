@@ -2,5 +2,5 @@
   "command.result.groundleveling.fail": "Failed to reload configuration",
   "command.result.groundleveling.success": "Configuration reloaded successfully",
   "key.groudleveling.toggle_destroy": "Toggle Key",
-  "message.groundleveling.mode_change": "RangeBreakMode: %s"
+  "message.groundleveling.key_input": "RangeBreakMode: %s"
 }

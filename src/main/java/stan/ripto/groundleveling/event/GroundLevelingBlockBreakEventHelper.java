@@ -10,68 +10,37 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.GameMasterBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import stan.ripto.groundleveling.config.GroundLevelingConfigs;
 
 import java.util.*;
 
-public class GroundLevelingBreakEvents {
-    private static Set<Block> enable;
-    private static final Set<Block> trees = GroundLevelingAddReloadListenerEvent.getTrees();
-    private static final Set<Block> leaves = GroundLevelingAddReloadListenerEvent.getLeaves();
-    private static Direction face;
-    private static int width;
-    private static int height;
-    private static int depth;
-    private static boolean isInProgress = false;
-    private static int exp;
+public class GroundLevelingBlockBreakEventHelper {
+    private final Set<Block> enables;
+    private final Set<Block> trees;
+    private final Set<Block> leaves;
+    private final Direction face;
+    private final int width;
+    private final int height;
+    private final int depth;
 
-    @SubscribeEvent
-    public static void onBlockBreak(BlockEvent.BreakEvent event) {
-        if (!ClientSetup.getToggle() || isInProgress) return;
-
-        isInProgress = true;
-        Player p = event.getPlayer();
-        Level l = p.level();
-        face = ClickedFaceRecorderEvents.CLICK_FACE.get(p.getUUID());
-        if (l.isClientSide() || !(p instanceof ServerPlayer player) || !(l instanceof ServerLevel level) || p.isShiftKeyDown() || face == Direction.DOWN || face == Direction.UP) {
-            isInProgress = false;
-            return;
-        }
-
-        enable = GroundLevelingAddReloadListenerEvent.getEnables();
-        width = GroundLevelingConfigs.getWidth();
-        height = GroundLevelingConfigs.getHeight();
-        depth = GroundLevelingConfigs.getDepth();
-        BlockPos origin = event.getPos();
-        ItemStack tool = player.getMainHandItem();
-        Block originBlock = level.getBlockState(origin).getBlock();
-        if (!enable.contains(originBlock)) {
-            isInProgress = false;
-            return;
-        }
-
-        if (isLogs(level, origin)) {
-            treeBreaker(level, origin, player, tool);
-        } else {
-            rangeBreaker(level, origin, player);
-        }
-
-        isInProgress = false;
+    public GroundLevelingBlockBreakEventHelper(Set<Block> enables, Set<Block> trees, Set<Block> leaves, Direction face, int width, int height, int depth) {
+        this.enables = enables;
+        this.trees = trees;
+        this.leaves = leaves;
+        this.face = face;
+        this.width = width;
+        this.height = height;
+        this.depth = depth;
     }
 
-    private static boolean destroyBlock(ServerLevel level, BlockPos pos, ServerPlayer player) {
+    private boolean destroyBlock(ServerLevel level, BlockPos pos, ServerPlayer player) {
         BlockState blockstate = level.getBlockState(pos);
         GameType type = player.gameMode.getGameModeForPlayer();
-        exp = net.minecraftforge.common.ForgeHooks.onBlockBreakEvent(level, type, player, pos);
+        int exp = net.minecraftforge.common.ForgeHooks.onBlockBreakEvent(level, type, player, pos);
         if (exp == -1) {
             return false;
         } else {
@@ -86,20 +55,21 @@ public class GroundLevelingBreakEvents {
                 if (player.isCreative()) {
                     removeBlock(level, pos, player, false);
                 } else {
-                    ItemStack itemstack = player.getMainHandItem();
-                    ItemStack itemstack1 = itemstack.copy();
+                    ItemStack itemStack = player.getMainHandItem();
+                    ItemStack itemStackCopy = itemStack.copy();
                     boolean flag1 = blockstate.canHarvestBlock(level, pos, player);
-                    itemstack.mineBlock(level, blockstate, pos, player);
-                    if (itemstack.isEmpty() && !itemstack1.isEmpty())
-                        net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, itemstack1, InteractionHand.MAIN_HAND);
+                    itemStack.mineBlock(level, blockstate, pos, player);
+                    if (itemStack.isEmpty() && !itemStackCopy.isEmpty())
+                        net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, itemStackCopy, InteractionHand.MAIN_HAND);
                     boolean flag = removeBlock(level, pos, player, flag1);
 
                     if (flag && flag1) {
-                        block.playerDestroy(level, player, pos, blockstate, blockentity, itemstack1);
+                        block.playerDestroy(level, player, pos, blockstate, blockentity, itemStackCopy);
                     }
 
                     if (flag && exp > 0) {
-                        blockstate.getBlock().popExperience(level, pos, exp);
+                        ExperienceOrb orb = new ExperienceOrb(level, player.getX(), player.getY(), player.getZ(), exp);
+                        level.addFreshEntity(orb);
                     }
                 }
                 return true;
@@ -107,7 +77,7 @@ public class GroundLevelingBreakEvents {
         }
     }
 
-    private static boolean removeBlock(ServerLevel level, BlockPos pos, ServerPlayer player, boolean canHarvest) {
+    private boolean removeBlock(ServerLevel level, BlockPos pos, ServerPlayer player, boolean canHarvest) {
         BlockState state = level.getBlockState(pos);
         boolean removed = state.onDestroyedByPlayer(level, pos, player, canHarvest, level.getFluidState(pos));
         if (removed)
@@ -115,7 +85,7 @@ public class GroundLevelingBreakEvents {
         return removed;
     }
 
-    private static void dropsWarp(BlockPos pos, ServerLevel level, ServerPlayer player) {
+    private void dropsWarp(BlockPos pos, ServerLevel level, ServerPlayer player) {
         double x = player.getX();
         double y = player.getY();
         double z = player.getZ();
@@ -125,22 +95,9 @@ public class GroundLevelingBreakEvents {
             drop.setPos(x, y, z);
             drop.setPickUpDelay(0);
         });
-
-        if (exp > 0) {
-            List<ExperienceOrb> orbs = level.getEntitiesOfClass(ExperienceOrb.class, box);
-            orbs.forEach(orb -> {
-                orb.setPos(x, y, z);
-                orb.setDeltaMovement(Vec3.ZERO);
-                orb.tickCount = 20;
-            });
-        }
     }
 
-    private static boolean isLogs(ServerLevel level, BlockPos pos) {
-        return trees.contains(level.getBlockState(pos).getBlock());
-    }
-
-    private static void rangeBreaker(ServerLevel level, BlockPos origin, ServerPlayer player) {
+    public void rangeBreaker(ServerLevel level, BlockPos origin, ServerPlayer player) {
         Set<BlockPos> visited = new HashSet<>();
         visited.add(origin);
 
@@ -194,11 +151,11 @@ public class GroundLevelingBreakEvents {
         }
     }
 
-    private static boolean isRangeBreakable(BlockPos pos, Player player, BlockState state) {
-        return enable.contains(state.getBlock()) && !(pos.getY() < player.getY()) && !player.isShiftKeyDown() && !player.isCreative() && player.hasCorrectToolForDrops(state);
+    private boolean isRangeBreakable(BlockPos pos, Player player, BlockState state) {
+        return enables.contains(state.getBlock()) && !(pos.getY() < player.getY()) && !player.isShiftKeyDown() && !player.isCreative() && player.hasCorrectToolForDrops(state);
     }
 
-    private static void treeBreaker(ServerLevel level, BlockPos pos, ServerPlayer player, ItemStack tool) {
+    public void treeBreaker(ServerLevel level, BlockPos pos, ServerPlayer player, ItemStack tool) {
         Set<BlockPos> visited = new HashSet<>();
         visited.add(pos);
 
@@ -231,7 +188,7 @@ public class GroundLevelingBreakEvents {
         }
     }
 
-    private static boolean isTreeBreakable(Player player, Block block) {
+    private boolean isTreeBreakable(Player player, Block block) {
         return trees.contains(block) && !player.isCreative() && !player.isShiftKeyDown();
     }
 }

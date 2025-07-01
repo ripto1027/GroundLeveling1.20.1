@@ -4,7 +4,7 @@ import net.minecraft.data.PackOutput;
 import net.minecraftforge.common.data.LanguageProvider;
 import stan.ripto.groundleveling.GroundLeveling;
 import stan.ripto.groundleveling.command.GroundLevelingConfigLoadCommand;
-import stan.ripto.groundleveling.event.ClientSetup;
+import stan.ripto.groundleveling.event.GroundLevelingForgeEvents;
 import stan.ripto.groundleveling.keyconfig.GroundLevelingKeyBindings;
 
 public class ENUSLanguageProvider extends LanguageProvider {
@@ -17,6 +17,6 @@ public class ENUSLanguageProvider extends LanguageProvider {
         add(GroundLevelingKeyBindings.getLanguageKey(), "Toggle Key");
         add(GroundLevelingConfigLoadCommand.getCommandMessageSuccessKey(), "Configuration reloaded successfully");
         add(GroundLevelingConfigLoadCommand.getCommandMessageFailKey(), "Failed to reload configuration");
-        add(ClientSetup.getModeChangeMessageKey(), "RangeBreakMode: %s");
+        add(GroundLevelingForgeEvents.getKeyInputMessageTranslateKey(), "RangeBreakMode: %s");
     }
 }

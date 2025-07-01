@@ -8,7 +8,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.fml.loading.FMLPaths;
 import stan.ripto.groundleveling.config.GroundLevelingConfigs;
-import stan.ripto.groundleveling.event.GroundLevelingAddReloadListenerEvent;
+import stan.ripto.groundleveling.event.GroundLevelingConfigLoadHelper;
 
 import java.nio.file.Path;
 
@@ -35,7 +35,7 @@ public class GroundLevelingConfigLoadCommand {
             CommentedFileConfig data = CommentedFileConfig.builder(path).autosave().sync().writingMode(WritingMode.REPLACE).build();
             data.load();
             GroundLevelingConfigs.COMMON_CONFIG.setConfig(data);
-            GroundLevelingAddReloadListenerEvent.loadConfig();
+            GroundLevelingConfigLoadHelper.loadConfig();
             return true;
         } catch (Exception e) {
             return false;

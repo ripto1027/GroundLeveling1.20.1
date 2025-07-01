@@ -2,5 +2,5 @@
   "command.result.groundleveling.fail": "コンフィグのリロードが失敗しました。",
   "command.result.groundleveling.success": "コンフィグのリロードに成功しました。",
   "key.groudleveling.toggle_destroy": "ON/OFF切り替え",
-  "message.groundleveling.mode_change": "一括破壊モード: %s"
+  "message.groundleveling.key_input": "一括破壊モード: %s"
 }
