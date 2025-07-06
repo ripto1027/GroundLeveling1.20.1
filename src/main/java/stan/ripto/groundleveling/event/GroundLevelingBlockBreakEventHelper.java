@@ -22,15 +22,17 @@ public class GroundLevelingBlockBreakEventHelper {
     private final Set<Block> enables;
     private final Set<Block> trees;
     private final Set<Block> leaves;
+    private final Set<Block> ores;
     private final Direction face;
     private final int width;
     private final int height;
     private final int depth;
 
-    public GroundLevelingBlockBreakEventHelper(Set<Block> enables, Set<Block> trees, Set<Block> leaves, Direction face, int width, int height, int depth) {
+    public GroundLevelingBlockBreakEventHelper(Set<Block> enables, Set<Block> trees, Set<Block> leaves, Set<Block> ores, Direction face, int width, int height, int depth) {
         this.enables = enables;
         this.trees = trees;
         this.leaves = leaves;
+        this.ores = ores;
         this.face = face;
         this.width = width;
         this.height = height;
@@ -190,5 +192,40 @@ public class GroundLevelingBlockBreakEventHelper {
 
     private boolean isTreeBreakable(Player player, Block block) {
         return trees.contains(block) && !player.isCreative() && !player.isShiftKeyDown();
+    }
+
+    public void oreBreaker(ServerLevel level, BlockPos pos, ServerPlayer player) {
+        Set<BlockPos> visited = new HashSet<>();
+        visited.add(pos);
+
+        Queue<BlockPos> queue = new ArrayDeque<>();
+        queue.add(pos);
+
+        while (!queue.isEmpty()) {
+            BlockPos current = queue.poll();
+            if (current == null) continue;
+
+            if (destroyBlock(level, current, player)) {
+                dropsWarp(current, level, player);
+            } else {
+                break;
+            }
+
+            for (Direction dir : Direction.values()) {
+                BlockPos next = current.relative(dir);
+
+                if (visited.contains(next)) continue;
+
+                Block nextBlock = level.getBlockState(next).getBlock();
+                if (!isOreBreakable(player, nextBlock)) continue;
+
+                visited.add(next);
+                queue.add(next);
+            }
+        }
+    }
+
+    private boolean isOreBreakable(ServerPlayer player, Block block) {
+        return ores.contains(block) && !player.isCreative() && !player.isShiftKeyDown();
     }
 }

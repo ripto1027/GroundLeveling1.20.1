@@ -19,6 +19,7 @@ public class GroundLevelingConfigLoadHelper {
         GroundLevelingForgeEvents.setEnables(setIds(breakableBlocks));
         GroundLevelingForgeEvents.setTrees(setIds(breakableTreeBlocks));
         GroundLevelingForgeEvents.setLeaves(setIds("#minecraft:leaves"));
+        GroundLevelingForgeEvents.setOres(setIds("#forge:ores"));
     }
 
     private static Set<Block> setIds(List<? extends String> list) {

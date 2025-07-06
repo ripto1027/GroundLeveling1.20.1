@@ -32,6 +32,7 @@ public class GroundLevelingForgeEvents {
     private static Set<Block> enables;
     private static Set<Block> trees;
     private static Set<Block> leaves;
+    private static Set<Block> ores;
     private static final WeakHashMap<UUID, Direction> clickedFace = new WeakHashMap<>();
     private static boolean toggle;
     private static final String KEY_INPUT_MESSAGE = "message.groundleveling.key_input";
@@ -76,12 +77,12 @@ public class GroundLevelingForgeEvents {
         isInProgress = true;
         Player p = event.getPlayer();
         Level l = p.level();
-        Direction face = clickedFace.get(p.getUUID());
-        if (l.isClientSide() || !(p instanceof ServerPlayer player) || !(l instanceof ServerLevel level) || p.isShiftKeyDown() || face == Direction.DOWN || face == Direction.UP) {
+        if (l.isClientSide() || !(p instanceof ServerPlayer player) || !(l instanceof ServerLevel level) || p.isShiftKeyDown()) {
             isInProgress = false;
             return;
         }
 
+        Direction face = clickedFace.get(p.getUUID());
         int width = GroundLevelingConfigs.getWidth();
         int height = GroundLevelingConfigs.getHeight();
         int depth = GroundLevelingConfigs.getDepth();
@@ -93,12 +94,20 @@ public class GroundLevelingForgeEvents {
             return;
         }
 
-        GroundLevelingBlockBreakEventHelper helper = new GroundLevelingBlockBreakEventHelper(enables, trees, leaves, face, width, height, depth);
+        GroundLevelingBlockBreakEventHelper helper =
+                new GroundLevelingBlockBreakEventHelper(enables, trees, leaves, ores, face, width, height, depth);
 
         if (trees.contains(originBlock)) {
             helper.treeBreaker(level, origin, player, tool);
+        } else if (ores.contains(originBlock)) {
+            helper.oreBreaker(level, origin, player);
         } else {
-            helper.rangeBreaker(level, origin, player);
+            if (face == Direction.DOWN || face == Direction.UP) {
+                isInProgress = false;
+                return;
+            } else {
+                helper.rangeBreaker(level, origin, player);
+            }
         }
 
         isInProgress = false;
@@ -114,6 +123,10 @@ public class GroundLevelingForgeEvents {
 
     public static void setLeaves(Set<Block> blocks) {
         leaves = blocks;
+    }
+
+    public static void setOres(Set<Block> blocks) {
+        ores = blocks;
     }
 
     public static String getKeyInputMessageTranslateKey() {
