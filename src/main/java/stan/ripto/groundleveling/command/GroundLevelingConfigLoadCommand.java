@@ -13,8 +13,8 @@ import stan.ripto.groundleveling.event.GroundLevelingConfigLoadHelper;
 import java.nio.file.Path;
 
 public class GroundLevelingConfigLoadCommand {
-    private static final String COMMAND_MESSAGE_SUCCESS_KEY = "command.result.groundleveling.success";
-    private static final String COMMAND_MESSAGE_FAIL_KEY = "command.result.groundleveling.fail";
+    public static final String COMMAND_MESSAGE_SUCCESS_KEY = "command.result.groundleveling.success";
+    public static final String COMMAND_MESSAGE_FAIL_KEY = "command.result.groundleveling.fail";
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("groundleveling")
@@ -40,13 +40,5 @@ public class GroundLevelingConfigLoadCommand {
         } catch (Exception e) {
             return false;
         }
-    }
-
-    public static String getCommandMessageSuccessKey() {
-        return COMMAND_MESSAGE_SUCCESS_KEY;
-    }
-
-    public static String getCommandMessageFailKey() {
-        return COMMAND_MESSAGE_FAIL_KEY;
     }
 }

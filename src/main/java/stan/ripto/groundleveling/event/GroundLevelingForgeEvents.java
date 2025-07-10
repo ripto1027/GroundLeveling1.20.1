@@ -1,17 +1,20 @@
 package stan.ripto.groundleveling.event;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.event.AddReloadListenerEvent;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -19,9 +22,12 @@ import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import stan.ripto.groundleveling.GroundLeveling;
+import stan.ripto.groundleveling.capability.GroundLevelingCapabilitySerializer;
 import stan.ripto.groundleveling.command.GroundLevelingConfigLoadCommand;
 import stan.ripto.groundleveling.config.GroundLevelingConfigs;
-import stan.ripto.groundleveling.keyconfig.GroundLevelingKeyBindings;
+import stan.ripto.groundleveling.key.GroundLevelingKeyBindings;
+import stan.ripto.groundleveling.network.GroundLevelingNetwork;
+import stan.ripto.groundleveling.network.GroundLevelingPacket;
 
 import java.util.Set;
 import java.util.UUID;
@@ -34,9 +40,11 @@ public class GroundLevelingForgeEvents {
     private static Set<Block> leaves;
     private static Set<Block> ores;
     private static final WeakHashMap<UUID, Direction> clickedFace = new WeakHashMap<>();
-    private static boolean toggle;
-    private static final String KEY_INPUT_MESSAGE = "message.groundleveling.key_input";
+    private static int mode;
     private static boolean isInProgress = false;
+    public static final String MESSAGE_CURRENT_MODE_OFF_TRANSLATE_KEY = "message.groundleveling.current_mode.off";
+    public static final String MESSAGE_CURRENT_MODE_MATERIAL_VEIN_TRANSLATE_KEY = "message.groundleveling.current_mode.material_vein";
+    public static final String MESSAGE_CURRENT_MODE_GROUND_LEVELING_TRANSLATE_KEY = "message.groundleveling.info.current_mode.ground_leveling";
 
     @SubscribeEvent
     public static void onServerStarting(ServerStartingEvent event) {
@@ -62,20 +70,22 @@ public class GroundLevelingForgeEvents {
     }
 
     @SubscribeEvent
-    public static void onKeyInput(InputEvent.Key event) {
-        Player player = Minecraft.getInstance().player;
-        if (player != null && GroundLevelingKeyBindings.TOGGLE_DESTROY.isDown()) {
-            toggle = !toggle;
-            player.displayClientMessage(Component.translatable(KEY_INPUT_MESSAGE, toggle ? "ON" : "OFF"), true);
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase == TickEvent.Phase.END) {
+            while (GroundLevelingKeyBindings.TOGGLE_DESTROY.consumeClick()) {
+                //noinspection InstantiationOfUtilityClass
+                GroundLevelingNetwork.CHANNEL.sendToServer(new GroundLevelingPacket());
+            }
         }
     }
 
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
-        if (!toggle || isInProgress) return;
+        Player p = event.getPlayer();
+        p.getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(data -> mode = data.getMode());
+        if (mode == 0 || isInProgress) return;
 
         isInProgress = true;
-        Player p = event.getPlayer();
         Level l = p.level();
         if (l.isClientSide() || !(p instanceof ServerPlayer player) || !(l instanceof ServerLevel level) || p.isShiftKeyDown()) {
             isInProgress = false;
@@ -97,10 +107,15 @@ public class GroundLevelingForgeEvents {
         GroundLevelingBlockBreakEventHelper helper =
                 new GroundLevelingBlockBreakEventHelper(enables, trees, leaves, ores, face, width, height, depth);
 
-        if (trees.contains(originBlock)) {
-            helper.treeBreaker(level, origin, player, tool);
-        } else if (ores.contains(originBlock)) {
-            helper.oreBreaker(level, origin, player);
+        if (mode == 1) {
+            if (trees.contains(originBlock)) {
+                helper.treeBreaker(level, origin, player, tool);
+            } else if (ores.contains(originBlock)) {
+                helper.oreBreaker(level, origin, player);
+            } else {
+                isInProgress = false;
+                return;
+            }
         } else {
             if (face == Direction.DOWN || face == Direction.UP) {
                 isInProgress = false;
@@ -111,6 +126,33 @@ public class GroundLevelingForgeEvents {
         }
 
         isInProgress = false;
+    }
+
+    @SubscribeEvent
+    public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
+        if (event.getObject() instanceof Player) {
+            event.addCapability(ResourceLocation.fromNamespaceAndPath(GroundLeveling.MOD_ID, "breaker_mode"), new GroundLevelingCapabilitySerializer());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerClone(PlayerEvent.Clone event) {
+        event.getOriginal().getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(o -> event.getEntity().getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(n -> n.setMode(o.getMode())));
+    }
+
+    @SubscribeEvent
+    public static void onLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        event.getEntity().getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(data -> {
+            int current = data.getMode();
+            Player player = event.getEntity();
+            if (current == 0) {
+                player.sendSystemMessage(Component.translatable(MESSAGE_CURRENT_MODE_OFF_TRANSLATE_KEY));
+            } else if (current == 1) {
+                player.sendSystemMessage(Component.translatable(MESSAGE_CURRENT_MODE_MATERIAL_VEIN_TRANSLATE_KEY));
+            } else {
+                player.sendSystemMessage(Component.translatable(MESSAGE_CURRENT_MODE_GROUND_LEVELING_TRANSLATE_KEY));
+            }
+        });
     }
 
     public static void setEnables(Set<Block> blocks) {
@@ -127,9 +169,5 @@ public class GroundLevelingForgeEvents {
 
     public static void setOres(Set<Block> blocks) {
         ores = blocks;
-    }
-
-    public static String getKeyInputMessageTranslateKey() {
-        return KEY_INPUT_MESSAGE;
     }
 }

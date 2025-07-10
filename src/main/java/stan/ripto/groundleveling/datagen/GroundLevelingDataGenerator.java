@@ -1,12 +1,13 @@
-package stan.ripto.groundleveling;
+package stan.ripto.groundleveling.datagen;
 
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.PackOutput;
 import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import stan.ripto.groundleveling.lang.ENUSLanguageProvider;
-import stan.ripto.groundleveling.lang.JAJPLanguageProvider;
+import stan.ripto.groundleveling.GroundLeveling;
+import stan.ripto.groundleveling.datagen.lang.ENUSLanguageProvider;
+import stan.ripto.groundleveling.datagen.lang.JAJPLanguageProvider;
 
 @Mod.EventBusSubscriber(modid = GroundLeveling.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class GroundLevelingDataGenerator {

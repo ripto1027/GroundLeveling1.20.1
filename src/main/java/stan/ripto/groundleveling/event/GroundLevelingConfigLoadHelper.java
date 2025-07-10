@@ -22,20 +22,20 @@ public class GroundLevelingConfigLoadHelper {
         GroundLevelingForgeEvents.setOres(setIds("#forge:ores"));
     }
 
-    private static Set<Block> setIds(List<? extends String> list) {
+    private static Set<Block> setIds(List<? extends String> lists) {
         Set<Block> ids = new HashSet<>();
 
-        for (String l : list) {
+        for (String li : lists) {
             ResourceLocation location;
-            if (l.startsWith("#")) {
-                location = ResourceLocation.parse(l.substring(1));
+            if (li.startsWith("#")) {
+                location = ResourceLocation.parse(li.substring(1));
                 TagKey<Block> key = TagKey.create(ForgeRegistries.Keys.BLOCKS, location);
                 ITagManager<Block> manager = ForgeRegistries.BLOCKS.tags();
                 if (manager != null) {
                     manager.getTag(key).forEach(ids::add);
                 }
             } else {
-                location = ResourceLocation.parse(l);
+                location = ResourceLocation.parse(li);
                 Block b = ForgeRegistries.BLOCKS.getValue(location);
                 if (b != null) {
                     ids.add(b);
