@@ -1,4 +1,4 @@
-package stan.ripto.groundleveling.event;
+package stan.ripto.groundleveling.util;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -6,12 +6,13 @@ import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.tags.ITagManager;
 import stan.ripto.groundleveling.config.GroundLevelingConfigs;
+import stan.ripto.groundleveling.event.GroundLevelingForgeEvents;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class GroundLevelingConfigLoadHelper {
+public class GroundLevelingConfigLoadHandler {
     public static void loadConfig() {
         List<? extends String> breakableBlocks = GroundLevelingConfigs.BREAKABLE_BLOCKS.get();
         List<? extends String> breakableTreeBlocks = GroundLevelingConfigs.TREE_BREAKABLE_BLOCKS.get();

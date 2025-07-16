@@ -10,6 +10,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
@@ -22,15 +23,18 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import stan.ripto.groundleveling.GroundLeveling;
 import stan.ripto.groundleveling.capability.GroundLevelingCapabilitySerializer;
+import stan.ripto.groundleveling.capability.IGroundLevelingData;
 import stan.ripto.groundleveling.command.GroundLevelingConfigLoadCommand;
+import stan.ripto.groundleveling.config.GroundLevelingConfigs;
 import stan.ripto.groundleveling.datagen.lang.TranslateKeys;
 import stan.ripto.groundleveling.key.GroundLevelingKeyBindings;
 import stan.ripto.groundleveling.network.GroundLevelingNetwork;
 import stan.ripto.groundleveling.network.GroundLevelingPacket;
+import stan.ripto.groundleveling.util.GroundLevelingBlockBreakEventHandler;
+import stan.ripto.groundleveling.util.GroundLevelingConfigLoadHandler;
+import stan.ripto.groundleveling.util.GroundLevelingTasks;
 
-import java.util.Set;
-import java.util.UUID;
-import java.util.WeakHashMap;
+import java.util.*;
 
 @Mod.EventBusSubscriber(modid = GroundLeveling.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class GroundLevelingForgeEvents {
@@ -38,9 +42,11 @@ public class GroundLevelingForgeEvents {
     private static Set<Block> trees;
     private static Set<Block> leaves;
     private static Set<Block> ores;
-    private static final WeakHashMap<UUID, Direction> clickedFace = new WeakHashMap<>();
-    private static int mode;
-    private static boolean isInProgress = false;
+    private static final HashMap<UUID, Integer> modeMap = new HashMap<>();
+    private static final HashMap<UUID, Direction> clickedFace = new HashMap<>();
+    private static final HashMap<UUID, Boolean> inProgressMap = new HashMap<>();
+    private static final List<GroundLevelingTasks> ACTIVE_TASKS = new ArrayList<>();
+
 
     @SubscribeEvent
     public static void onServerStarting(ServerStartingEvent event) {
@@ -49,12 +55,12 @@ public class GroundLevelingForgeEvents {
 
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
-        GroundLevelingConfigLoadHelper.loadConfig();
+        GroundLevelingConfigLoadHandler.loadConfig();
     }
 
     @SubscribeEvent
     public static void onAddReloadListener(AddReloadListenerEvent event) {
-        GroundLevelingConfigLoadHelper.loadConfig();
+        GroundLevelingConfigLoadHandler.loadConfig();
     }
 
     @SubscribeEvent
@@ -76,48 +82,62 @@ public class GroundLevelingForgeEvents {
     }
 
     @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase == TickEvent.Phase.END) {
+            Iterator<GroundLevelingTasks> iterator = ACTIVE_TASKS.iterator();
+
+            while (iterator.hasNext()) {
+                GroundLevelingTasks task = iterator.next();
+                int blockPerTick = GroundLevelingConfigs.BREAK_PER_TICK.get();
+
+                for (int i = 0; i < blockPerTick; i++) {
+                    BlockPos pos = task.found.poll();
+                    if (pos == null) continue;
+                    if (task.handler.destroyBlock(task, pos)) {
+                        iterator.remove();
+                        break;
+                    }
+                }
+
+                if (task.found.isEmpty()) {
+                    inProgressMap.put(task.player.getUUID(), false);
+                    iterator.remove();
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
         Player p = event.getPlayer();
-        p.getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(data -> mode = data.getMode());
-        if (mode == 0 || isInProgress) return;
+        LazyOptional<IGroundLevelingData> cap = p.getCapability(GroundLevelingCapabilitySerializer.INSTANCE);
+        cap.ifPresent(data -> modeMap.put(p.getUUID(), data.getMode()));
+        if (modeMap.get(p.getUUID()) == 0 || inProgressMap.get(p.getUUID())) return;
 
-        isInProgress = true;
+        inProgressMap.put(p.getUUID(), true);
         Level l = p.level();
-        if (l.isClientSide() || !(p instanceof ServerPlayer player) || !(l instanceof ServerLevel level) || p.isShiftKeyDown()) {
-            isInProgress = false;
+        if (l.isClientSide() || !(p instanceof ServerPlayer player) || !(l instanceof ServerLevel level) || p.isShiftKeyDown() || p.isCreative()) {
+            inProgressMap.put(p.getUUID(), false);
             return;
         }
 
-        Direction face = clickedFace.get(p.getUUID());
         BlockPos origin = event.getPos();
-        Block originBlock = level.getBlockState(origin).getBlock();
-        if (!enables.contains(originBlock)) {
-            isInProgress = false;
+
+        if (!enables.contains(level.getBlockState(origin).getBlock())) {
+            inProgressMap.put(player.getUUID(), false);
             return;
         }
 
-        GroundLevelingBlockBreakEventHelper helper =
-                new GroundLevelingBlockBreakEventHelper(enables, trees, leaves, ores, face);
+        GroundLevelingBlockBreakEventHandler handler =
+                new GroundLevelingBlockBreakEventHandler(enables, trees, leaves, ores);
 
-        if (mode == 1) {
-            if (trees.contains(originBlock)) {
-                helper.treeBreaker(level, origin, player);
-            } else if (ores.contains(originBlock)) {
-                helper.oreBreaker(level, origin, player);
-            } else {
-                isInProgress = false;
-                return;
-            }
-        } else {
-            if (face == Direction.DOWN || face == Direction.UP) {
-                isInProgress = false;
-                return;
-            } else {
-                helper.rangeBreaker(level, origin, player);
-            }
-        }
+        GroundLevelingTasks tasks =
+                new GroundLevelingTasks(player, level, clickedFace.get(player.getUUID()), modeMap.get(player.getUUID()));
 
-        isInProgress = false;
+        handler.findBreakableBlocks(tasks, origin, event);
+        tasks.handler = handler;
+
+        ACTIVE_TASKS.add(tasks);
     }
 
     @SubscribeEvent
@@ -145,6 +165,8 @@ public class GroundLevelingForgeEvents {
                 player.sendSystemMessage(Component.translatable(TranslateKeys.MESSAGE_MODE_CHANGE_GROUND_LEVELING));
             }
         });
+
+        inProgressMap.put(event.getEntity().getUUID(), false);
     }
 
     public static void setEnables(Set<Block> blocks) {
