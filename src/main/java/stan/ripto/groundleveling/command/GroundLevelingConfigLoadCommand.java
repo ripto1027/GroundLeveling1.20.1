@@ -8,21 +8,19 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.fml.loading.FMLPaths;
 import stan.ripto.groundleveling.config.GroundLevelingConfigs;
+import stan.ripto.groundleveling.datagen.lang.TranslateKeys;
 import stan.ripto.groundleveling.event.GroundLevelingConfigLoadHelper;
 
 import java.nio.file.Path;
 
 public class GroundLevelingConfigLoadCommand {
-    public static final String COMMAND_MESSAGE_SUCCESS_KEY = "command.result.groundleveling.success";
-    public static final String COMMAND_MESSAGE_FAIL_KEY = "command.result.groundleveling.fail";
-
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("groundleveling")
                 .executes(context -> {
                     if (reloadCommonConfig()) {
-                        context.getSource().sendSuccess(() -> Component.translatable(COMMAND_MESSAGE_SUCCESS_KEY), true);
+                        context.getSource().sendSuccess(() -> Component.translatable(TranslateKeys.COMMAND_RESULT_SUCCESS), true);
                     } else {
-                        context.getSource().sendFailure(Component.translatable(COMMAND_MESSAGE_FAIL_KEY));
+                        context.getSource().sendFailure(Component.translatable(TranslateKeys.COMMAND_RESULT_FAIL));
                     }
                     return 1;
                 })

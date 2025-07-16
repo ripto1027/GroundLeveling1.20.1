@@ -3,10 +3,6 @@ package stan.ripto.groundleveling.datagen.lang;
 import net.minecraft.data.PackOutput;
 import net.minecraftforge.common.data.LanguageProvider;
 import stan.ripto.groundleveling.GroundLeveling;
-import stan.ripto.groundleveling.command.GroundLevelingConfigLoadCommand;
-import stan.ripto.groundleveling.event.GroundLevelingForgeEvents;
-import stan.ripto.groundleveling.key.GroundLevelingKeyBindings;
-import stan.ripto.groundleveling.network.GroundLevelingSyncPacket;
 
 public class ENUSLanguageProvider extends LanguageProvider {
     public ENUSLanguageProvider(PackOutput output) {
@@ -15,15 +11,15 @@ public class ENUSLanguageProvider extends LanguageProvider {
 
     @Override
     protected void addTranslations() {
-        add(GroundLevelingKeyBindings.KEY_MAPPING_DESCRIPTION_TRANSLATE_KEY, "Mode Change");
-        add(GroundLevelingKeyBindings.KEY_MAPPING_CATEGORY_TRANSLATE_KEY, "Ground leveling");
-        add(GroundLevelingConfigLoadCommand.COMMAND_MESSAGE_SUCCESS_KEY, "Configuration reloaded successfully");
-        add(GroundLevelingConfigLoadCommand.COMMAND_MESSAGE_FAIL_KEY, "Failed to reload configuration");
-        add(GroundLevelingSyncPacket.CAPABILITY_BREAKER_MODE_OFF_TRANSLATE_KEY, "Mode -> OFF");
-        add(GroundLevelingSyncPacket.CAPABILITY_BREAKER_MODE_MATERIAL_VEIN_MINING_TRANSLATE_KEY, "Mode -> Material Vein Mining");
-        add(GroundLevelingSyncPacket.CAPABILITY_BREAKER_MODE_GROUND_LEVELING_TRANSLATE_KEY, "Mode -> Ground Leveling");
-        add(GroundLevelingForgeEvents.MESSAGE_CURRENT_MODE_OFF_TRANSLATE_KEY, "Mode -> OFF");
-        add(GroundLevelingForgeEvents.MESSAGE_CURRENT_MODE_MATERIAL_VEIN_TRANSLATE_KEY, "Mode -> Material Vein Mining");
-        add(GroundLevelingForgeEvents.MESSAGE_CURRENT_MODE_GROUND_LEVELING_TRANSLATE_KEY, "Mode -> Ground Leveling");
+        add(TranslateKeys.KEY_DESCRIPTION, "Mode Change");
+        add(TranslateKeys.KEY_CATEGORY, "Ground leveling");
+        add(TranslateKeys.COMMAND_RESULT_SUCCESS, "Configuration reloaded successfully");
+        add(TranslateKeys.COMMAND_RESULT_FAIL, "Failed to reload configuration");
+        add(TranslateKeys.CAPABILITY_MODE_OFF, "Mode -> OFF");
+        add(TranslateKeys.CAPABILITY_MODE_MATERIAL_VEIN_MINING, "Mode -> Material Vein Mining");
+        add(TranslateKeys.CAPABILITY_MODE_GROUND_LEVELING, "Mode -> Ground Leveling");
+        add(TranslateKeys.MESSAGE_MODE_CHANGE_OFF, "Mode -> OFF");
+        add(TranslateKeys.MESSAGE_MODE_CHANGE_MATERIAL_VEIN_MINING, "Mode -> Material Vein Mining");
+        add(TranslateKeys.MESSAGE_MODE_CHANGE_GROUND_LEVELING, "Mode -> Ground Leveling");
     }
 }

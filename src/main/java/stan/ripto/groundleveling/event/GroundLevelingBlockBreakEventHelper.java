@@ -5,16 +5,16 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.GameMasterBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
+import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.event.ForgeEventFactory;
+import stan.ripto.groundleveling.config.GroundLevelingConfigs;
 
 import java.util.*;
 
@@ -24,35 +24,28 @@ public class GroundLevelingBlockBreakEventHelper {
     private final Set<Block> leaves;
     private final Set<Block> ores;
     private final Direction face;
-    private final int width;
-    private final int height;
-    private final int depth;
 
-    public GroundLevelingBlockBreakEventHelper(Set<Block> enables, Set<Block> trees, Set<Block> leaves, Set<Block> ores, Direction face, int width, int height, int depth) {
+    public GroundLevelingBlockBreakEventHelper(Set<Block> enables, Set<Block> trees, Set<Block> leaves, Set<Block> ores, Direction face) {
         this.enables = enables;
         this.trees = trees;
         this.leaves = leaves;
         this.ores = ores;
         this.face = face;
-        this.width = width;
-        this.height = height;
-        this.depth = depth;
     }
 
     private boolean destroyBlock(ServerLevel level, BlockPos pos, ServerPlayer player) {
         BlockState blockstate = level.getBlockState(pos);
         GameType type = player.gameMode.getGameModeForPlayer();
-        int exp = net.minecraftforge.common.ForgeHooks.onBlockBreakEvent(level, type, player, pos);
+        int exp = ForgeHooks.onBlockBreakEvent(level, type, player, pos);
         if (exp == -1) {
-            return false;
+            return true;
         } else {
-            BlockEntity blockentity = level.getBlockEntity(pos);
             Block block = blockstate.getBlock();
             if (block instanceof GameMasterBlock && !player.canUseGameMasterBlocks()) {
                 level.sendBlockUpdated(pos, blockstate, blockstate, 3);
-                return false;
+                return true;
             } else if (player.blockActionRestricted(level, pos, type)) {
-                return false;
+                return true;
             } else {
                 if (player.isCreative()) {
                     removeBlock(level, pos, player, false);
@@ -60,21 +53,22 @@ public class GroundLevelingBlockBreakEventHelper {
                     ItemStack itemStack = player.getMainHandItem();
                     ItemStack itemStackCopy = itemStack.copy();
                     boolean flag1 = blockstate.canHarvestBlock(level, pos, player);
-                    itemStack.mineBlock(level, blockstate, pos, player);
+
+                    if (!leaves.contains(block)) itemStack.mineBlock(level, blockstate, pos, player);
+
                     if (itemStack.isEmpty() && !itemStackCopy.isEmpty())
-                        net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, itemStackCopy, InteractionHand.MAIN_HAND);
+                        ForgeEventFactory.onPlayerDestroyItem(player, itemStackCopy, InteractionHand.MAIN_HAND);
                     boolean flag = removeBlock(level, pos, player, flag1);
 
                     if (flag && flag1) {
-                        block.playerDestroy(level, player, pos, blockstate, blockentity, itemStackCopy);
+                        playerDestroy(level, player, pos, blockstate, itemStackCopy);
                     }
 
                     if (flag && exp > 0) {
-                        ExperienceOrb orb = new ExperienceOrb(level, player.getX(), player.getY(), player.getZ(), exp);
-                        level.addFreshEntity(orb);
+                        player.giveExperiencePoints(exp);
                     }
                 }
-                return true;
+                return false;
             }
         }
     }
@@ -82,20 +76,16 @@ public class GroundLevelingBlockBreakEventHelper {
     private boolean removeBlock(ServerLevel level, BlockPos pos, ServerPlayer player, boolean canHarvest) {
         BlockState state = level.getBlockState(pos);
         boolean removed = state.onDestroyedByPlayer(level, pos, player, canHarvest, level.getFluidState(pos));
-        if (removed)
-            state.getBlock().destroy(level, pos, state);
+        if (removed) state.getBlock().destroy(level, pos, state);
         return removed;
     }
 
-    private void dropsWarp(BlockPos pos, ServerLevel level, ServerPlayer player) {
-        double x = player.getX();
-        double y = player.getY();
-        double z = player.getZ();
-        AABB box = new AABB(pos).inflate(0.5);
-        List<ItemEntity> drops = level.getEntitiesOfClass(ItemEntity.class, box);
+    private void playerDestroy(ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, ItemStack tool) {
+        List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, tool);
         drops.forEach(drop -> {
-            drop.setPos(x, y, z);
-            drop.setPickUpDelay(0);
+            ItemEntity item = new ItemEntity(level, player.getX(), player.getY(), player.getZ(), drop.copy());
+            item.setNoPickUpDelay();
+            level.addFreshEntity(item);
         });
     }
 
@@ -103,18 +93,18 @@ public class GroundLevelingBlockBreakEventHelper {
         Set<BlockPos> visited = new HashSet<>();
         visited.add(origin);
 
-        Queue<BlockPos> queue = new ArrayDeque<>();
+        Queue<BlockPos> queue = new LinkedList<>();
         queue.add(origin);
+
+        int width = GroundLevelingConfigs.WIDTH.get();
+        int height = GroundLevelingConfigs.HEIGHT.get();
+        int depth = GroundLevelingConfigs.DEPTH.get();
 
         while (!queue.isEmpty()) {
             BlockPos current = queue.poll();
             if (current == null) continue;
 
-            if (destroyBlock(level, current, player)) {
-                dropsWarp(current, level, player);
-            } else {
-                break;
-            }
+            if (destroyBlock(level, current, player)) break;
 
             for (Direction dir : Direction.values()) {
                 BlockPos next = current.relative(dir);
@@ -125,7 +115,7 @@ public class GroundLevelingBlockBreakEventHelper {
                 if (!isRangeBreakable(next, player, state)) continue;
 
                 int dw = 0;
-                int dh = next.getY() - origin.getY();
+                int dh = next.getY() - (int) Math.floor(player.getY());
                 int dd = 0;
                 switch (face) {
                     case EAST -> {
@@ -157,20 +147,18 @@ public class GroundLevelingBlockBreakEventHelper {
         return enables.contains(state.getBlock()) && !(pos.getY() < player.getY()) && !player.isShiftKeyDown() && !player.isCreative() && player.hasCorrectToolForDrops(state);
     }
 
-    public void treeBreaker(ServerLevel level, BlockPos pos, ServerPlayer player, ItemStack tool) {
+    public void treeBreaker(ServerLevel level, BlockPos pos, ServerPlayer player) {
         Set<BlockPos> visited = new HashSet<>();
         visited.add(pos);
 
-        Queue<BlockPos> queue = new ArrayDeque<>();
+        Queue<BlockPos> queue = new LinkedList<>();
         queue.add(pos);
 
         while (!queue.isEmpty()) {
             BlockPos current = queue.poll();
             if (current == null) continue;
 
-            Block currentBlock = level.getBlockState(current).getBlock();
-            if (destroyBlock(level, current, player)) dropsWarp(current, level, player);
-            if (!leaves.contains(currentBlock)) tool.setDamageValue(tool.getDamageValue() + 1);
+            if (destroyBlock(level, current, player)) break;
 
             for (int x = -1; x <= 1; x++) {
                 for (int y = -1; y <= 1; y++) {
@@ -198,18 +186,14 @@ public class GroundLevelingBlockBreakEventHelper {
         Set<BlockPos> visited = new HashSet<>();
         visited.add(pos);
 
-        Queue<BlockPos> queue = new ArrayDeque<>();
+        Queue<BlockPos> queue = new LinkedList<>();
         queue.add(pos);
 
         while (!queue.isEmpty()) {
             BlockPos current = queue.poll();
             if (current == null) continue;
 
-            if (destroyBlock(level, current, player)) {
-                dropsWarp(current, level, player);
-            } else {
-                break;
-            }
+            if (destroyBlock(level, current, player)) break;
 
             for (Direction dir : Direction.values()) {
                 BlockPos next = current.relative(dir);

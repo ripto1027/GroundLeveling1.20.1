@@ -13,13 +13,23 @@ import java.util.Set;
 
 public class GroundLevelingConfigLoadHelper {
     public static void loadConfig() {
-        List<? extends String> breakableBlocks = GroundLevelingConfigs.getBreakableBlock();
-        List<? extends String> breakableTreeBlocks = GroundLevelingConfigs.getTreeBreakableBlock();
+        List<? extends String> breakableBlocks = GroundLevelingConfigs.BREAKABLE_BLOCKS.get();
+        List<? extends String> breakableTreeBlocks = GroundLevelingConfigs.TREE_BREAKABLE_BLOCKS.get();
+        List<? extends String> breakableOreBlocks = GroundLevelingConfigs.ORES_BREAKABLE_BLOCKS.get();
+
+        List<? extends String> leavesBlocks = List.of(
+                "#minecraft:leaves",
+                "minecraft:brown_mushroom_block",
+                "minecraft:red_mushroom_block",
+                "minecraft:nether_wart_block",
+                "minecraft:warped_wart_block"
+        );
+
 
         GroundLevelingForgeEvents.setEnables(setIds(breakableBlocks));
         GroundLevelingForgeEvents.setTrees(setIds(breakableTreeBlocks));
-        GroundLevelingForgeEvents.setLeaves(setIds("#minecraft:leaves"));
-        GroundLevelingForgeEvents.setOres(setIds("#forge:ores"));
+        GroundLevelingForgeEvents.setLeaves(setIds(leavesBlocks));
+        GroundLevelingForgeEvents.setOres(setIds(breakableOreBlocks));
     }
 
     private static Set<Block> setIds(List<? extends String> lists) {
@@ -43,27 +53,6 @@ public class GroundLevelingConfigLoadHelper {
             }
         }
 
-        return ids;
-    }
-
-    private static Set<Block> setIds(String loc) {
-        Set<Block> ids = new HashSet<>();
-
-        ResourceLocation location;
-        if (loc.startsWith("#")) {
-            location = ResourceLocation.parse(loc.substring(1));
-            TagKey<Block> key = TagKey.create(ForgeRegistries.Keys.BLOCKS, location);
-            ITagManager<Block> manager = ForgeRegistries.BLOCKS.tags();
-            if (manager != null) {
-                manager.getTag(key).forEach(ids::add);
-            }
-        } else {
-            location = ResourceLocation.parse(loc);
-            Block b = ForgeRegistries.BLOCKS.getValue(location);
-            if (b != null) {
-                ids.add(b);
-            }
-        }
         return ids;
     }
 }

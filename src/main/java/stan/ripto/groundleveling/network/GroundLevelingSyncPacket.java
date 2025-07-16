@@ -6,14 +6,12 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.network.NetworkEvent;
 import stan.ripto.groundleveling.capability.GroundLevelingCapabilitySerializer;
+import stan.ripto.groundleveling.datagen.lang.TranslateKeys;
 
 import java.util.function.Supplier;
 
 public class GroundLevelingSyncPacket {
     private final int mode;
-    public static final String CAPABILITY_BREAKER_MODE_OFF_TRANSLATE_KEY = "capability.groundleveling.off.breaker_mode";
-    public static final String CAPABILITY_BREAKER_MODE_MATERIAL_VEIN_MINING_TRANSLATE_KEY = "capability.groundleveling.material_vein_mining.breaker_mode";
-    public static final String CAPABILITY_BREAKER_MODE_GROUND_LEVELING_TRANSLATE_KEY = "capability.groundleveling.ground_leveling.breaker_mode";
 
     public GroundLevelingSyncPacket(int mode) {
         this.mode = mode;
@@ -35,11 +33,11 @@ public class GroundLevelingSyncPacket {
                 data.setMode(packet.mode);
                 int currentMode = data.getMode();
                 if (currentMode == 0) {
-                    player.displayClientMessage(Component.translatable(CAPABILITY_BREAKER_MODE_OFF_TRANSLATE_KEY), true);
+                    player.displayClientMessage(Component.translatable(TranslateKeys.CAPABILITY_MODE_OFF), true);
                 } else if (currentMode == 1) {
-                    player.displayClientMessage(Component.translatable(CAPABILITY_BREAKER_MODE_MATERIAL_VEIN_MINING_TRANSLATE_KEY), true);
+                    player.displayClientMessage(Component.translatable(TranslateKeys.CAPABILITY_MODE_MATERIAL_VEIN_MINING), true);
                 } else {
-                    player.displayClientMessage(Component.translatable(CAPABILITY_BREAKER_MODE_GROUND_LEVELING_TRANSLATE_KEY), true);
+                    player.displayClientMessage(Component.translatable(TranslateKeys.CAPABILITY_MODE_GROUND_LEVELING), true);
                 }
             });
         });

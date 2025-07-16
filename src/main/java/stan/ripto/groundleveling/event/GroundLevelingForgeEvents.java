@@ -8,7 +8,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.event.AddReloadListenerEvent;
@@ -24,7 +23,7 @@ import net.minecraftforge.fml.common.Mod;
 import stan.ripto.groundleveling.GroundLeveling;
 import stan.ripto.groundleveling.capability.GroundLevelingCapabilitySerializer;
 import stan.ripto.groundleveling.command.GroundLevelingConfigLoadCommand;
-import stan.ripto.groundleveling.config.GroundLevelingConfigs;
+import stan.ripto.groundleveling.datagen.lang.TranslateKeys;
 import stan.ripto.groundleveling.key.GroundLevelingKeyBindings;
 import stan.ripto.groundleveling.network.GroundLevelingNetwork;
 import stan.ripto.groundleveling.network.GroundLevelingPacket;
@@ -42,9 +41,6 @@ public class GroundLevelingForgeEvents {
     private static final WeakHashMap<UUID, Direction> clickedFace = new WeakHashMap<>();
     private static int mode;
     private static boolean isInProgress = false;
-    public static final String MESSAGE_CURRENT_MODE_OFF_TRANSLATE_KEY = "message.groundleveling.current_mode.off";
-    public static final String MESSAGE_CURRENT_MODE_MATERIAL_VEIN_TRANSLATE_KEY = "message.groundleveling.current_mode.material_vein";
-    public static final String MESSAGE_CURRENT_MODE_GROUND_LEVELING_TRANSLATE_KEY = "message.groundleveling.info.current_mode.ground_leveling";
 
     @SubscribeEvent
     public static void onServerStarting(ServerStartingEvent event) {
@@ -93,11 +89,7 @@ public class GroundLevelingForgeEvents {
         }
 
         Direction face = clickedFace.get(p.getUUID());
-        int width = GroundLevelingConfigs.getWidth();
-        int height = GroundLevelingConfigs.getHeight();
-        int depth = GroundLevelingConfigs.getDepth();
         BlockPos origin = event.getPos();
-        ItemStack tool = player.getMainHandItem();
         Block originBlock = level.getBlockState(origin).getBlock();
         if (!enables.contains(originBlock)) {
             isInProgress = false;
@@ -105,11 +97,11 @@ public class GroundLevelingForgeEvents {
         }
 
         GroundLevelingBlockBreakEventHelper helper =
-                new GroundLevelingBlockBreakEventHelper(enables, trees, leaves, ores, face, width, height, depth);
+                new GroundLevelingBlockBreakEventHelper(enables, trees, leaves, ores, face);
 
         if (mode == 1) {
             if (trees.contains(originBlock)) {
-                helper.treeBreaker(level, origin, player, tool);
+                helper.treeBreaker(level, origin, player);
             } else if (ores.contains(originBlock)) {
                 helper.oreBreaker(level, origin, player);
             } else {
@@ -146,11 +138,11 @@ public class GroundLevelingForgeEvents {
             int current = data.getMode();
             Player player = event.getEntity();
             if (current == 0) {
-                player.sendSystemMessage(Component.translatable(MESSAGE_CURRENT_MODE_OFF_TRANSLATE_KEY));
+                player.sendSystemMessage(Component.translatable(TranslateKeys.MESSAGE_MODE_CHANGE_OFF));
             } else if (current == 1) {
-                player.sendSystemMessage(Component.translatable(MESSAGE_CURRENT_MODE_MATERIAL_VEIN_TRANSLATE_KEY));
+                player.sendSystemMessage(Component.translatable(TranslateKeys.MESSAGE_MODE_CHANGE_MATERIAL_VEIN_MINING));
             } else {
-                player.sendSystemMessage(Component.translatable(MESSAGE_CURRENT_MODE_GROUND_LEVELING_TRANSLATE_KEY));
+                player.sendSystemMessage(Component.translatable(TranslateKeys.MESSAGE_MODE_CHANGE_GROUND_LEVELING));
             }
         });
     }

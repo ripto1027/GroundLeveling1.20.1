@@ -1,12 +1,12 @@
 {
-  "capability.groundleveling.ground_leveling.breaker_mode": "整地モードON",
-  "capability.groundleveling.material_vein_mining.breaker_mode": "一括破壊モードON",
-  "capability.groundleveling.off.breaker_mode": "機能OFF",
-  "command.result.groundleveling.fail": "コンフィグのリロードに失敗しました。",
-  "command.result.groundleveling.success": "コンフィグのリロードに成功しました。",
-  "key_mapping.groudleveling.description": "モード切り替え",
-  "key_mapping.groundleveling.category": "Ground Leveling",
-  "message.groundleveling.current_mode.material_vein": "現在、GroundLevelingは一括破壊モードがONになっています。",
-  "message.groundleveling.current_mode.off": "現在、GroundLevelingの機能はOFFになっています。",
-  "message.groundleveling.info.current_mode.ground_leveling": "現在、GroundLevelingは整地モードがONになっています。"
+  "capability.groundleveling.mode.ground_leveling": "整地モードON",
+  "capability.groundleveling.mode.material_vein_mining": "一括破壊モードON",
+  "capability.groundleveling.mode.off": "機能OFF",
+  "command.groundleveling.result.fail": "コンフィグのリロードに失敗しました。",
+  "command.groundleveling.result.success": "コンフィグのリロードに成功しました。",
+  "key.groudleveling.description": "モード切り替え",
+  "key.groundleveling.category": "Ground Leveling",
+  "message.groundleveling.mode_change.ground_leveling": "現在、GroundLevelingは整地モードがONになっています。",
+  "message.groundleveling.mode_change.material_vein_mining": "現在、GroundLevelingは一括破壊モードがONになっています。",
+  "message.groundleveling.mode_change.off": "現在、GroundLevelingの機能はOFFになっています。"
 }
