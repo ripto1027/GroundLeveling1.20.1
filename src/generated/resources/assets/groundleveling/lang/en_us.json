@@ -1,12 +1,15 @@
 {
-  "capability.groundleveling.mode.ground_leveling": "Mode -> Ground Leveling",
-  "capability.groundleveling.mode.material_vein_mining": "Mode -> Material Vein Mining",
-  "capability.groundleveling.mode.off": "Mode -> OFF",
+  "capability.groundleveling.mode.chain_mining": "Mode: Chain Mining",
+  "capability.groundleveling.mode.ground_leveling": "Mode: Ground Leveling",
+  "capability.groundleveling.mode.off": "Mode: OFF",
   "command.groundleveling.result.fail": "Failed to reload configuration",
   "command.groundleveling.result.success": "Configuration reloaded successfully",
+  "gui.groundleveling.mode.chain_mining": "Mode: Chain Mining",
+  "gui.groundleveling.mode.ground_leveling": "Mode: Ground Leveling",
+  "gui.groundleveling.mode.off": "Mode: OFF",
   "key.groudleveling.description": "Mode Change",
   "key.groundleveling.category": "Ground leveling",
-  "message.groundleveling.mode_change.ground_leveling": "Mode -> Ground Leveling",
-  "message.groundleveling.mode_change.material_vein_mining": "Mode -> Material Vein Mining",
-  "message.groundleveling.mode_change.off": "Mode -> OFF"
+  "message.groundleveling.mode_change.chain_mining": "Mode: Chain Mining",
+  "message.groundleveling.mode_change.ground_leveling": "Mode: Ground Leveling",
+  "message.groundleveling.mode_change.off": "Mode: OFF"
 }

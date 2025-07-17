@@ -26,11 +26,27 @@ public class GroundLevelingConfigLoadHandler {
                 "minecraft:warped_wart_block"
         );
 
+        List<? extends String> grassesBlocks = List.of(
+                "#minecraft:flowers",
+                "minecraft:brown_mushroom",
+                "minecraft:red_mushroom",
+                "minecraft:crimson_fungus",
+                "minecraft:warped_fungus",
+                "minecraft:grass",
+                "minecraft:fern",
+                "minecraft:dead_bush",
+                "minecraft:crimson_roots",
+                "minecraft:warped_roots",
+                "minecraft:nether_sprouts",
+                "minecraft:tall_grass",
+                "minecraft:large_fern"
+        );
 
         GroundLevelingForgeEvents.setEnables(setIds(breakableBlocks));
         GroundLevelingForgeEvents.setTrees(setIds(breakableTreeBlocks));
         GroundLevelingForgeEvents.setLeaves(setIds(leavesBlocks));
         GroundLevelingForgeEvents.setOres(setIds(breakableOreBlocks));
+        GroundLevelingForgeEvents.setGrasses(setIds(grassesBlocks));
     }
 
     private static Set<Block> setIds(List<? extends String> lists) {

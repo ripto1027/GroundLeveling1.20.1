@@ -25,27 +25,36 @@ public class GroundLevelingBlockBreakEventHandler {
     private final Set<Block> trees;
     private final Set<Block> leaves;
     private final Set<Block> ores;
+    private final Set<Block> grasses;
     public final int width = GroundLevelingConfigs.WIDTH.get();
     public final int height = GroundLevelingConfigs.HEIGHT.get();
     public final int depth = GroundLevelingConfigs.DEPTH.get();
 
-    public GroundLevelingBlockBreakEventHandler(Set<Block> enables, Set<Block> trees, Set<Block> leaves, Set<Block> ores) {
+    public GroundLevelingBlockBreakEventHandler(Set<Block> enables, Set<Block> trees, Set<Block> leaves, Set<Block> ores, Set<Block> grasses) {
         this.enables = enables;
         this.trees = trees;
         this.leaves = leaves;
         this.ores = ores;
+        this.grasses = grasses;
     }
 
     public void findBreakableBlocks(GroundLevelingTasks task, BlockPos origin, BlockEvent.BreakEvent event) {
         task.queue.add(origin);
+        task.found.add(origin);
         task.visited.add(origin);
 
+        Block block = task.level.getBlockState(origin).getBlock();
+
         if (task.mode == 1) {
-            event.setCanceled(true);
-            if (trees.contains(task.level.getBlockState(origin).getBlock())) {
+            if (trees.contains(block)) {
+                event.setCanceled(true);
                 findTrees(task);
-            } else if (ores.contains(task.level.getBlockState(origin).getBlock())) {
+            } else if (ores.contains(block)) {
+                event.setCanceled(true);
                 findOres(task);
+            } else if (grasses.contains(block)) {
+                event.setCanceled(true);
+                findGrasses(task);
             }
         } else if (task.mode == 2) {
             event.setCanceled(true);
@@ -67,10 +76,10 @@ public class GroundLevelingBlockBreakEventHandler {
                 if (!isOutRange(task.player, origin, next, task.face)) continue;
 
                 task.queue.add(next);
+                task.found.add(next);
                 task.visited.add(next);
             }
         }
-        task.foundCopy();
     }
 
     private boolean isEnables(BlockPos pos, Player player, BlockState state) {
@@ -115,19 +124,15 @@ public class GroundLevelingBlockBreakEventHandler {
                         if (task.visited.contains(next)) continue;
 
                         Block block = task.level.getBlockState(next).getBlock();
-                        if (!isTreeBreakable(block)) continue;
+                        if (!trees.contains(block)) continue;
 
                         task.queue.add(next);
+                        task.found.add(next);
                         task.visited.add(next);
                     }
                 }
             }
         }
-        task.foundCopy();
-    }
-
-    private boolean isTreeBreakable(Block block) {
-        return trees.contains(block);
     }
 
     private void findOres(GroundLevelingTasks task) {
@@ -139,18 +144,43 @@ public class GroundLevelingBlockBreakEventHandler {
 
                 if (task.visited.contains(next)) continue;
 
-                Block block = task.level.getBlockState(next).getBlock();
-                if (!isOreBreakable(block)) continue;
+                BlockState state = task.level.getBlockState(next);
+                if (!isOreBreakable(state, task.player)) continue;
 
                 task.queue.add(next);
+                task.found.add(next);
                 task.visited.add(next);
             }
         }
-        task.foundCopy();
     }
 
-    private boolean isOreBreakable(Block block) {
-        return ores.contains(block);
+    private boolean isOreBreakable(BlockState state, Player player) {
+        return ores.contains(state.getBlock()) && player.hasCorrectToolForDrops(state);
+    }
+
+    private void findGrasses(GroundLevelingTasks task) {
+        while (!task.queue.isEmpty()) {
+            BlockPos current = task.queue.poll();
+
+            for (int x = -2; x <= 2; x++) {
+                for (int z = -2; z <= 2; z++) {
+                    BlockPos next = current.offset(x, 0, z);
+
+                    if (task.visited.contains(next)) continue;
+
+                    Block block = task.level.getBlockState(next).getBlock();
+                    if (!isGrassesBreakable(block)) continue;
+
+                    task.queue.add(next);
+                    task.found.add(next);
+                    task.visited.add(next);
+                }
+            }
+        }
+    }
+
+    private boolean isGrassesBreakable(Block block) {
+        return grasses.contains(block);
     }
 
     public boolean destroyBlock(GroundLevelingTasks task, BlockPos pos) {
@@ -158,14 +188,14 @@ public class GroundLevelingBlockBreakEventHandler {
         GameType type = task.player.gameMode.getGameModeForPlayer();
         int exp = ForgeHooks.onBlockBreakEvent(task.level, type, task.player, pos);
         if (exp == -1) {
-            return true;
+            return false;
         } else {
             Block block = blockstate.getBlock();
             if (block instanceof GameMasterBlock && !task.player.canUseGameMasterBlocks()) {
                 task.level.sendBlockUpdated(pos, blockstate, blockstate, 3);
-                return true;
+                return false;
             } else if (task.player.blockActionRestricted(task.level, pos, type)) {
-                return true;
+                return false;
             } else {
                 ItemStack itemStack = task.player.getMainHandItem();
                 ItemStack itemStackCopy = itemStack.copy();
@@ -173,10 +203,10 @@ public class GroundLevelingBlockBreakEventHandler {
 
                 if (!leaves.contains(block)) itemStack.mineBlock(task.level, blockstate, pos, task.player);
 
-                boolean flag2 = false;
+                boolean flag2 = true;
                 if (itemStack.isEmpty() && !itemStackCopy.isEmpty()) {
                     ForgeEventFactory.onPlayerDestroyItem(task.player, itemStackCopy, InteractionHand.MAIN_HAND);
-                    flag2 = true;
+                    flag2 = false;
                 }
                 boolean flag = removeBlock(task.level, pos, task.player, flag1);
 

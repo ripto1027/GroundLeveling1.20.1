@@ -30,7 +30,13 @@ public class GroundLevelingConfigLoadCommand {
     private static boolean reloadCommonConfig() {
         try {
             Path path = FMLPaths.CONFIGDIR.get().resolve("groundleveling-common.toml");
-            CommentedFileConfig data = CommentedFileConfig.builder(path).autosave().sync().writingMode(WritingMode.REPLACE).build();
+            CommentedFileConfig data = CommentedFileConfig
+                                        .builder(path)
+                                        .autosave()
+                                        .sync()
+                                        .writingMode(WritingMode.REPLACE)
+                                        .build();
+
             data.load();
             GroundLevelingConfigs.COMMON_CONFIG.setConfig(data);
             GroundLevelingConfigLoadHandler.loadConfig();

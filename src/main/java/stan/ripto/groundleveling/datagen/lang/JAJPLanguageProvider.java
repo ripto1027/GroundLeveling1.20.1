@@ -15,11 +15,8 @@ public class JAJPLanguageProvider extends LanguageProvider {
         add(TranslateKeys.KEY_CATEGORY, "Ground Leveling");
         add(TranslateKeys.COMMAND_RESULT_SUCCESS, "コンフィグのリロードに成功しました。");
         add(TranslateKeys.COMMAND_RESULT_FAIL, "コンフィグのリロードに失敗しました。");
-        add(TranslateKeys.CAPABILITY_MODE_OFF, "機能OFF");
-        add(TranslateKeys.CAPABILITY_MODE_MATERIAL_VEIN_MINING, "一括破壊モードON");
-        add(TranslateKeys.CAPABILITY_MODE_GROUND_LEVELING, "整地モードON");
-        add(TranslateKeys.MESSAGE_MODE_CHANGE_OFF, "現在、GroundLevelingの機能はOFFになっています。");
-        add(TranslateKeys.MESSAGE_MODE_CHANGE_MATERIAL_VEIN_MINING, "現在、GroundLevelingは一括破壊モードがONになっています。");
-        add(TranslateKeys.MESSAGE_MODE_CHANGE_GROUND_LEVELING, "現在、GroundLevelingは整地モードがONになっています。");
+        add(TranslateKeys.GUI_MODE_RENDER_OFF, "Mode: OFF");
+        add(TranslateKeys.GUI_MODE_RENDER_CHAIN_MINING, "Mode: 一括破壊");
+        add(TranslateKeys.GUI_MODE_RENDER_GROUND_LEVELING, "Mode: 整地");
     }
 }

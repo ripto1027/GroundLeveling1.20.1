@@ -15,11 +15,8 @@ public class ENUSLanguageProvider extends LanguageProvider {
         add(TranslateKeys.KEY_CATEGORY, "Ground leveling");
         add(TranslateKeys.COMMAND_RESULT_SUCCESS, "Configuration reloaded successfully");
         add(TranslateKeys.COMMAND_RESULT_FAIL, "Failed to reload configuration");
-        add(TranslateKeys.CAPABILITY_MODE_OFF, "Mode -> OFF");
-        add(TranslateKeys.CAPABILITY_MODE_MATERIAL_VEIN_MINING, "Mode -> Material Vein Mining");
-        add(TranslateKeys.CAPABILITY_MODE_GROUND_LEVELING, "Mode -> Ground Leveling");
-        add(TranslateKeys.MESSAGE_MODE_CHANGE_OFF, "Mode -> OFF");
-        add(TranslateKeys.MESSAGE_MODE_CHANGE_MATERIAL_VEIN_MINING, "Mode -> Material Vein Mining");
-        add(TranslateKeys.MESSAGE_MODE_CHANGE_GROUND_LEVELING, "Mode -> Ground Leveling");
+        add(TranslateKeys.GUI_MODE_RENDER_OFF, "Mode: OFF");
+        add(TranslateKeys.GUI_MODE_RENDER_CHAIN_MINING, "Mode: Chain Mining");
+        add(TranslateKeys.GUI_MODE_RENDER_GROUND_LEVELING, "Mode: Ground Leveling");
     }
 }

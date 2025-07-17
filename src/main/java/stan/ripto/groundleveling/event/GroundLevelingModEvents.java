@@ -6,13 +6,13 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import stan.ripto.groundleveling.GroundLeveling;
 import stan.ripto.groundleveling.capability.IGroundLevelingData;
-import stan.ripto.groundleveling.key.GroundLevelingKeyBindings;
+import stan.ripto.groundleveling.key.GroundLevelingKeyMappings;
 import stan.ripto.groundleveling.network.GroundLevelingNetwork;
 
 @Mod.EventBusSubscriber(modid = GroundLeveling.MOD_ID)
 public class GroundLevelingModEvents {
     public static void onRegisterKeyMapping(RegisterKeyMappingsEvent event) {
-        event.register(GroundLevelingKeyBindings.TOGGLE_DESTROY);
+        event.register(GroundLevelingKeyMappings.TOGGLE_DESTROY);
     }
 
     public static void onRegisterCapabilities(RegisterCapabilitiesEvent event) {

@@ -12,7 +12,7 @@ public class GroundLevelingTasks {
     public final ServerLevel level;
     public final Queue<BlockPos> queue = new ArrayDeque<>();
     public final Queue<BlockPos> found = new ArrayDeque<>();
-    public final List<BlockPos> visited = new ArrayList<>();
+    public final Set<BlockPos> visited = new HashSet<>();
     public final Direction face;
     public final int mode;
 
@@ -23,9 +23,5 @@ public class GroundLevelingTasks {
         this.level = level;
         this.face = face;
         this.mode = mode;
-    }
-
-    public void foundCopy() {
-        this.found.addAll(this.visited);
     }
 }
