@@ -24,40 +24,36 @@ public class GroundLevelingBlockBreakEventHandler {
     private final Set<Block> enables;
     private final Set<Block> trees;
     private final Set<Block> leaves;
-    private final Set<Block> ores;
     private final Set<Block> grasses;
+    private final Set<Block> blackList;
     public final int width = GroundLevelingConfigs.WIDTH.get();
     public final int height = GroundLevelingConfigs.HEIGHT.get();
     public final int depth = GroundLevelingConfigs.DEPTH.get();
 
-    public GroundLevelingBlockBreakEventHandler(Set<Block> enables, Set<Block> trees, Set<Block> leaves, Set<Block> ores, Set<Block> grasses) {
+    public GroundLevelingBlockBreakEventHandler(Set<Block> enables, Set<Block> trees, Set<Block> leaves, Set<Block> grasses, Set<Block> blackList) {
         this.enables = enables;
         this.trees = trees;
         this.leaves = leaves;
-        this.ores = ores;
         this.grasses = grasses;
+        this.blackList = blackList;
     }
 
     public void findBreakableBlocks(GroundLevelingTasks task, BlockPos origin, BlockEvent.BreakEvent event) {
+        event.setCanceled(true);
+
         task.queue.add(origin);
         task.found.add(origin);
         task.visited.add(origin);
 
         Block block = task.level.getBlockState(origin).getBlock();
 
-        if (task.mode == 1) {
-            if (trees.contains(block)) {
-                event.setCanceled(true);
-                findTrees(task);
-            } else if (ores.contains(block)) {
-                event.setCanceled(true);
-                findOres(task);
-            } else if (grasses.contains(block)) {
-                event.setCanceled(true);
-                findGrasses(task);
-            }
-        } else if (task.mode == 2) {
-            event.setCanceled(true);
+        if (task.findType == 0) {
+            findTrees(task);
+        } else if (task.findType == 1) {
+            findGrasses(task);
+        } else if (task.findType == 2) {
+            findChainBreakables(task, block);
+        } else if (task.findType == 3) {
             findEnables(task, origin);
         }
     }
@@ -135,29 +131,6 @@ public class GroundLevelingBlockBreakEventHandler {
         }
     }
 
-    private void findOres(GroundLevelingTasks task) {
-        while (!task.queue.isEmpty()) {
-            BlockPos current = task.queue.poll();
-
-            for (Direction dir : Direction.values()) {
-                BlockPos next = current.relative(dir);
-
-                if (task.visited.contains(next)) continue;
-
-                BlockState state = task.level.getBlockState(next);
-                if (!isOreBreakable(state, task.player)) continue;
-
-                task.queue.add(next);
-                task.found.add(next);
-                task.visited.add(next);
-            }
-        }
-    }
-
-    private boolean isOreBreakable(BlockState state, Player player) {
-        return ores.contains(state.getBlock()) && player.hasCorrectToolForDrops(state);
-    }
-
     private void findGrasses(GroundLevelingTasks task) {
         while (!task.queue.isEmpty()) {
             BlockPos current = task.queue.poll();
@@ -181,6 +154,29 @@ public class GroundLevelingBlockBreakEventHandler {
 
     private boolean isGrassesBreakable(Block block) {
         return grasses.contains(block);
+    }
+
+    private void findChainBreakables(GroundLevelingTasks task, Block originBlock) {
+        while (!task.queue.isEmpty()) {
+            BlockPos current = task.queue.poll();
+
+            for (Direction dir : Direction.values()) {
+                BlockPos next = current.relative(dir);
+
+                if (task.visited.contains(next)) continue;
+
+                BlockState state = task.level.getBlockState(next);
+                if (!isChainBreakable(state, originBlock, task.player)) continue;
+
+                task.queue.add(next);
+                task.found.add(next);
+                task.visited.add(next);
+            }
+        }
+    }
+
+    private boolean isChainBreakable(BlockState state, Block originBlock, Player player) {
+        return originBlock == state.getBlock() && !blackList.contains(state.getBlock()) && player.hasCorrectToolForDrops(state);
     }
 
     public boolean destroyBlock(GroundLevelingTasks task, BlockPos pos) {

@@ -14,14 +14,14 @@ public class GroundLevelingTasks {
     public final Queue<BlockPos> found = new ArrayDeque<>();
     public final Set<BlockPos> visited = new HashSet<>();
     public final Direction face;
-    public final int mode;
+    public final int findType;
 
     public GroundLevelingBlockBreakEventHandler handler;
 
-    public GroundLevelingTasks(ServerPlayer player, ServerLevel level, Direction face, int mode) {
+    public GroundLevelingTasks(ServerPlayer player, ServerLevel level, Direction face, int findType) {
         this.player = player;
         this.level = level;
         this.face = face;
-        this.mode = mode;
+        this.findType = findType;
     }
 }

@@ -12,7 +12,6 @@ public class GroundLevelingConfigs {
     public static final ForgeConfigSpec.IntValue DEPTH;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> BREAKABLE_BLOCKS;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> TREE_BREAKABLE_BLOCKS;
-    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> ORES_BREAKABLE_BLOCKS;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -80,18 +79,6 @@ public class GroundLevelingConfigs {
                                 "minecraft:red_mushroom_block",
                                 "minecraft:nether_wart_block",
                                 "minecraft:warped_wart_block"
-                        ),
-
-                        o -> o instanceof String
-                );
-
-        ORES_BREAKABLE_BLOCKS = builder.comment("Breakable ore breaker list")
-                .defineList(
-                        "oreBreakerBreakableBlocks",
-
-                        List.of(
-                                "#forge:ores",
-                                "#forge:obsidian"
                         ),
 
                         o -> o instanceof String

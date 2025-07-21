@@ -1,15 +1,9 @@
 {
-  "capability.groundleveling.mode.chain_mining": "一括破壊モードON",
-  "capability.groundleveling.mode.ground_leveling": "整地モードON",
-  "capability.groundleveling.mode.off": "機能OFF",
   "command.groundleveling.result.fail": "コンフィグのリロードに失敗しました。",
   "command.groundleveling.result.success": "コンフィグのリロードに成功しました。",
-  "gui.groundleveling.mode.chain_mining": "Mode: 一括破壊",
-  "gui.groundleveling.mode.ground_leveling": "Mode: 整地",
-  "gui.groundleveling.mode.off": "Mode: OFF",
+  "gui.groundleveling.findType.chain_mining": "Mode: 一括破壊",
+  "gui.groundleveling.findType.ground_leveling": "Mode: 整地",
+  "gui.groundleveling.findType.off": "Mode: OFF",
   "key.groudleveling.description": "モード切り替え",
-  "key.groundleveling.category": "Ground Leveling",
-  "message.groundleveling.mode_change.chain_mining": "現在、GroundLevelingは一括破壊モードがONになっています。",
-  "message.groundleveling.mode_change.ground_leveling": "現在、GroundLevelingは整地モードがONになっています。",
-  "message.groundleveling.mode_change.off": "現在、GroundLevelingの機能はOFFになっています。"
+  "key.groundleveling.category": "Ground Leveling"
 }

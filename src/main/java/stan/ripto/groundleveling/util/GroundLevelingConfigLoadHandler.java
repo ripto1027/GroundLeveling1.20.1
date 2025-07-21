@@ -16,7 +16,6 @@ public class GroundLevelingConfigLoadHandler {
     public static void loadConfig() {
         List<? extends String> breakableBlocks = GroundLevelingConfigs.BREAKABLE_BLOCKS.get();
         List<? extends String> breakableTreeBlocks = GroundLevelingConfigs.TREE_BREAKABLE_BLOCKS.get();
-        List<? extends String> breakableOreBlocks = GroundLevelingConfigs.ORES_BREAKABLE_BLOCKS.get();
 
         List<? extends String> leavesBlocks = List.of(
                 "#minecraft:leaves",
@@ -42,11 +41,22 @@ public class GroundLevelingConfigLoadHandler {
                 "minecraft:large_fern"
         );
 
+        List<? extends String> chainBreakBlackList = List.of(
+                "minecraft:grass_block",
+                "minecraft:dirt",
+                "#forge:sand",
+                "#forge:sandstone",
+                "minecraft:gravel",
+                "#forge:stone",
+                "minecraft:netherrack",
+                "minecraft:basalt"
+        );
+
         GroundLevelingForgeEvents.setEnables(setIds(breakableBlocks));
         GroundLevelingForgeEvents.setTrees(setIds(breakableTreeBlocks));
         GroundLevelingForgeEvents.setLeaves(setIds(leavesBlocks));
-        GroundLevelingForgeEvents.setOres(setIds(breakableOreBlocks));
         GroundLevelingForgeEvents.setGrasses(setIds(grassesBlocks));
+        GroundLevelingForgeEvents.setBlackList(setIds(chainBreakBlackList));
     }
 
     private static Set<Block> setIds(List<? extends String> lists) {

@@ -45,8 +45,8 @@ public class GroundLevelingForgeEvents {
     private static Set<Block> enables;
     private static Set<Block> trees;
     private static Set<Block> leaves;
-    private static Set<Block> ores;
     private static Set<Block> grasses;
+    private static Set<Block> blackList;
     public static final HashMap<UUID, Integer> mode = new HashMap<>();
     private static final HashMap<UUID, Direction> clickedFace = new HashMap<>();
     private static final HashMap<UUID, Boolean> inProcessing = new HashMap<>();
@@ -126,12 +126,21 @@ public class GroundLevelingForgeEvents {
 
         BlockPos origin = event.getPos();
         Block block = l.getBlockState(origin).getBlock();
+        int findType;
         if (mode.get(uuid) == 1) {
-            if (!trees.contains(block) && !ores.contains(block) && !grasses.contains(block)) {
+            if (trees.contains(block)) {
+                findType = 0;
+            } else if (grasses.contains(block)) {
+                findType = 1;
+            } else if (!blackList.contains(block)) {
+                findType = 2;
+            } else {
                 return;
             }
         } else {
-            if (!enables.contains(block)) {
+            if (enables.contains(block)) {
+                findType = 3;
+            } else {
                 return;
             }
         }
@@ -139,10 +148,10 @@ public class GroundLevelingForgeEvents {
         inProcessing.put(player.getUUID(), true);
 
         GroundLevelingBlockBreakEventHandler handler =
-                new GroundLevelingBlockBreakEventHandler(enables, trees, leaves, ores, grasses);
+                new GroundLevelingBlockBreakEventHandler(enables, trees, leaves, grasses, blackList);
 
         GroundLevelingTasks tasks =
-                new GroundLevelingTasks(player, level, clickedFace.get(player.getUUID()), mode.get(player.getUUID()));
+                new GroundLevelingTasks(player, level, clickedFace.get(player.getUUID()), findType);
 
         handler.findBreakableBlocks(tasks, origin, event);
         tasks.handler = handler;
@@ -176,7 +185,7 @@ public class GroundLevelingForgeEvents {
     }
 
     @SubscribeEvent
-    public static void onRenderOverlay(RenderGuiOverlayEvent.Pre event) {
+    public static void onRenderOverlay(RenderGuiOverlayEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         if (player == null) return;
@@ -212,11 +221,11 @@ public class GroundLevelingForgeEvents {
         leaves = blocks;
     }
 
-    public static void setOres(Set<Block> blocks) {
-        ores = blocks;
-    }
-
     public static void setGrasses(Set<Block> blocks) {
         grasses = blocks;
+    }
+
+    public static void setBlackList(Set<Block> blocks) {
+        blackList = blocks;
     }
 }
