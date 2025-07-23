@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class GroundLevelingCapabilitySerializer implements ICapabilitySerializable<CompoundTag> {
     public static final Capability<IGroundLevelingData> INSTANCE = CapabilityManager.get(new CapabilityToken<>() {});
-    public final GroundLevelingData BREAKER_MODE = new GroundLevelingData();
+    public final IGroundLevelingData BREAKER_MODE = new GroundLevelingData();
     private final LazyOptional<IGroundLevelingData> OPTION = LazyOptional.of(() -> BREAKER_MODE);
 
     @Override

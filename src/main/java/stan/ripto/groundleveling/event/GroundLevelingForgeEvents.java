@@ -14,15 +14,15 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
-import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import stan.ripto.groundleveling.GroundLeveling;
@@ -35,7 +35,6 @@ import stan.ripto.groundleveling.network.GroundLevelingNetwork;
 import stan.ripto.groundleveling.network.GroundLevelingModeChangePacket;
 import stan.ripto.groundleveling.util.GroundLevelingBlockBreakEventHandler;
 import stan.ripto.groundleveling.util.GroundLevelingConfigLoadHandler;
-import stan.ripto.groundleveling.util.GroundLevelingSyncMode;
 import stan.ripto.groundleveling.util.GroundLevelingTasks;
 
 import java.util.*;
@@ -47,15 +46,12 @@ public class GroundLevelingForgeEvents {
     private static Set<Block> leaves;
     private static Set<Block> grasses;
     private static Set<Block> blackList;
-    public static final HashMap<UUID, Integer> mode = new HashMap<>();
-    private static final HashMap<UUID, Direction> clickedFace = new HashMap<>();
     private static final HashMap<UUID, Boolean> inProcessing = new HashMap<>();
     private static final List<GroundLevelingTasks> ACTIVE_TASKS = new ArrayList<>();
 
-
     @SubscribeEvent
-    public static void onServerStarting(ServerStartingEvent event) {
-        GroundLevelingConfigLoadCommand.register(event.getServer().getCommands().getDispatcher());
+    public static void onRegisterCommands(RegisterCommandsEvent event) {
+        GroundLevelingConfigLoadCommand.register(event.getDispatcher());
     }
 
     @SubscribeEvent
@@ -66,14 +62,6 @@ public class GroundLevelingForgeEvents {
     @SubscribeEvent
     public static void onAddReloadListener(AddReloadListenerEvent event) {
         GroundLevelingConfigLoadHandler.loadConfig();
-    }
-
-    @SubscribeEvent
-    public static void onLeftClicked(PlayerInteractEvent.LeftClickBlock event) {
-        Direction face = event.getFace();
-        if (face != null) {
-            clickedFace.put(event.getEntity().getUUID(), face);
-        }
     }
 
     @SuppressWarnings("InstantiationOfUtilityClass")
@@ -117,46 +105,54 @@ public class GroundLevelingForgeEvents {
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
         Player p = event.getPlayer();
         UUID uuid = p.getUUID();
-        if (mode.get(uuid) == 0 || inProcessing.get(uuid) || p.isShiftKeyDown() || p.isCreative()) return;
 
-        if (mode.get(uuid) == 2 && (clickedFace.get(uuid) == Direction.UP || clickedFace.get(uuid) == Direction.DOWN)) return;
+        p.getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(data -> {
+            int m = data.getMode();
 
-        Level l = p.level();
-        if (!(p instanceof ServerPlayer player) || !(l instanceof ServerLevel level)) return;
+            if (m == 0 || inProcessing.get(uuid) || p.isShiftKeyDown() || p.isCreative()) return;
 
-        BlockPos origin = event.getPos();
-        Block block = l.getBlockState(origin).getBlock();
-        int findType;
-        if (mode.get(uuid) == 1) {
-            if (trees.contains(block)) {
-                findType = 0;
-            } else if (grasses.contains(block)) {
-                findType = 1;
-            } else if (!blackList.contains(block)) {
-                findType = 2;
+            BlockHitResult hit = (BlockHitResult) p.pick(5.0D, 1.0F, false);
+            Direction face = hit.getDirection();
+            if (m == 2 && (face == Direction.UP || face == Direction.DOWN)) return;
+
+            Level l = p.level();
+            if (!(p instanceof ServerPlayer player) || !(l instanceof ServerLevel level)) return;
+
+            BlockPos origin = event.getPos();
+            Block originBlock = level.getBlockState(origin).getBlock();
+
+            int findType;
+            if (m == 1) {
+                if (trees.contains(originBlock)) {
+                    findType = 0;
+                } else if (grasses.contains(originBlock)) {
+                    findType = 1;
+                } else if (!blackList.contains(originBlock)) {
+                    findType = 2;
+                } else {
+                    return;
+                }
             } else {
-                return;
+                if (enables.contains(originBlock)) {
+                    findType = 3;
+                } else {
+                    return;
+                }
             }
-        } else {
-            if (enables.contains(block)) {
-                findType = 3;
-            } else {
-                return;
-            }
-        }
 
-        inProcessing.put(player.getUUID(), true);
+            inProcessing.put(uuid, true);
 
-        GroundLevelingBlockBreakEventHandler handler =
-                new GroundLevelingBlockBreakEventHandler(enables, trees, leaves, grasses, blackList);
+            GroundLevelingBlockBreakEventHandler handler =
+                    new GroundLevelingBlockBreakEventHandler(enables, trees, leaves, grasses, blackList);
 
-        GroundLevelingTasks tasks =
-                new GroundLevelingTasks(player, level, clickedFace.get(player.getUUID()), findType);
+            GroundLevelingTasks task =
+                    new GroundLevelingTasks(player, level, face, findType);
 
-        handler.findBreakableBlocks(tasks, origin, event);
-        tasks.handler = handler;
+            handler.findBreakableBlocks(task, origin, event);
+            task.handler = handler;
 
-        ACTIVE_TASKS.add(tasks);
+            ACTIVE_TASKS.add(task);
+        });
     }
 
     @SubscribeEvent
@@ -171,17 +167,24 @@ public class GroundLevelingForgeEvents {
 
     @SubscribeEvent
     public static void onPlayerClone(PlayerEvent.Clone event) {
-        event.getOriginal().getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(o ->
-                event.getEntity().getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(n ->
-                        n.setMode(o.getMode())
-                )
-        );
+        event.getOriginal()
+                .getCapability(GroundLevelingCapabilitySerializer.INSTANCE)
+                .ifPresent(o -> event.getEntity()
+                        .getCapability(GroundLevelingCapabilitySerializer.INSTANCE)
+                        .ifPresent(n ->
+                                n.setMode(o.getMode())
+                        )
+                );
     }
 
     @SubscribeEvent
     public static void onLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
-        GroundLevelingSyncMode.sync(event.getEntity());
         inProcessing.put(event.getEntity().getUUID(), false);
+    }
+
+    @SubscribeEvent
+    public static void onLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        inProcessing.remove(event.getEntity().getUUID());
     }
 
     @SubscribeEvent
@@ -190,23 +193,24 @@ public class GroundLevelingForgeEvents {
         LocalPlayer player = mc.player;
         if (player == null) return;
 
-        if (mode.isEmpty()) return;
-        int m = mode.get(player.getUUID());
+        player.getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(data -> {
+            int m = data.getMode();
 
-        MutableComponent renderText;
-        if (m == 0) {
-            renderText = Component.translatable(TranslateKeys.GUI_MODE_RENDER_OFF);
-        } else if (m == 1) {
-            renderText = Component.translatable(TranslateKeys.GUI_MODE_RENDER_CHAIN_MINING);
-        } else {
-            renderText = Component.translatable(TranslateKeys.GUI_MODE_RENDER_GROUND_LEVELING);
-        }
+            MutableComponent renderText;
+            if (m == 0) {
+                renderText = Component.translatable(TranslateKeys.GUI_MODE_RENDER_OFF);
+            } else if (m == 1) {
+                renderText = Component.translatable(TranslateKeys.GUI_MODE_RENDER_CHAIN_MINING);
+            } else {
+                renderText = Component.translatable(TranslateKeys.GUI_MODE_RENDER_GROUND_LEVELING);
+            }
 
-        GuiGraphics guiGraphics = event.getGuiGraphics();
-        int x = 5;
-        int y = mc.getWindow().getGuiScaledHeight() - 10;
+            GuiGraphics guiGraphics = event.getGuiGraphics();
+            int x = 5;
+            int y = mc.getWindow().getGuiScaledHeight() - 10;
 
-        guiGraphics.drawString(mc.font, renderText, x, y, 0xFFFFFF, false);
+            guiGraphics.drawString(mc.font, renderText, x, y, 0xFFFFFF, false);
+        });
     }
 
     public static void setEnables(Set<Block> blocks) {

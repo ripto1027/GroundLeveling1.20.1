@@ -5,7 +5,6 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 import stan.ripto.groundleveling.capability.GroundLevelingCapabilitySerializer;
-import stan.ripto.groundleveling.event.GroundLevelingForgeEvents;
 
 import java.util.function.Supplier;
 
@@ -28,10 +27,8 @@ public class GroundLevelingSyncPacket {
         context.get().enqueueWork(() -> {
             LocalPlayer player = Minecraft.getInstance().player;
             if (player == null) return;
-            player.getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(data -> {
-                data.setMode(packet.mode);
-                GroundLevelingForgeEvents.mode.put(player.getUUID(), data.getMode());
-            });
+            player.getCapability(GroundLevelingCapabilitySerializer.INSTANCE)
+                    .ifPresent(data -> data.setMode(packet.mode));
         });
         context.get().setPacketHandled(true);
     }
