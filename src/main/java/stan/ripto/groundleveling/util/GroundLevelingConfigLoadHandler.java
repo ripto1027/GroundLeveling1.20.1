@@ -27,34 +27,34 @@ public class GroundLevelingConfigLoadHandler {
                 "minecraft:warped_wart_block"
         );
 
-        ENABLES = getBlockFromId(GroundLevelingConfigs.SERVER.ENABLES.get());
-        TREES = getBlockFromId(GroundLevelingConfigs.SERVER.TREES.get());
-        GRASSES = getBlockFromId(GroundLevelingConfigs.SERVER.GRASSES.get());
-        BLACK_LIST = getBlockFromId(GroundLevelingConfigs.SERVER.BLACK_LIST.get());
-        LEAVES = getBlockFromId(leavesBlocks);
+        ENABLES = getBlocksFromId(GroundLevelingConfigs.SERVER.ENABLES.get());
+        TREES = getBlocksFromId(GroundLevelingConfigs.SERVER.TREES.get());
+        GRASSES = getBlocksFromId(GroundLevelingConfigs.SERVER.GRASSES.get());
+        BLACK_LIST = getBlocksFromId(GroundLevelingConfigs.SERVER.BLACK_LIST.get());
+        LEAVES = getBlocksFromId(leavesBlocks);
     }
 
-    private static Set<Block> getBlockFromId(List<? extends String> lists) {
-        Set<Block> ids = new HashSet<>();
+    private static Set<Block> getBlocksFromId(List<? extends String> list) {
+        Set<Block> blocks = new HashSet<>();
 
-        for (String li : lists) {
+        for (String element : list) {
             ResourceLocation location;
-            if (li.startsWith("#")) {
-                location = ResourceLocation.parse(li.substring(1));
+            if (element.startsWith("#")) {
+                location = ResourceLocation.parse(element.substring(1));
                 TagKey<Block> key = TagKey.create(ForgeRegistries.Keys.BLOCKS, location);
                 ITagManager<Block> manager = ForgeRegistries.BLOCKS.tags();
                 if (manager != null) {
-                    manager.getTag(key).forEach(ids::add);
+                    manager.getTag(key).forEach(blocks::add);
                 }
             } else {
-                location = ResourceLocation.parse(li);
+                location = ResourceLocation.parse(element);
                 Block b = ForgeRegistries.BLOCKS.getValue(location);
                 if (b != null) {
-                    ids.add(b);
+                    blocks.add(b);
                 }
             }
         }
 
-        return ids;
+        return blocks;
     }
 }

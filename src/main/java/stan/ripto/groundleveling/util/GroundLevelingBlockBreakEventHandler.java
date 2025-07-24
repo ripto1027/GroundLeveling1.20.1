@@ -10,7 +10,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.GameMasterBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.event.ForgeEventFactory;
@@ -164,54 +163,48 @@ public class GroundLevelingBlockBreakEventHandler {
     }
 
     public boolean destroyBlock(GroundLevelingTasks task, BlockPos pos) {
-        BlockState blockstate = task.level.getBlockState(pos);
+        BlockState state = task.level.getBlockState(pos);
+
         GameType type = task.player.gameMode.getGameModeForPlayer();
-        int exp = ForgeHooks.onBlockBreakEvent(task.level, type, task.player, pos);
-        if (exp == -1) {
-            return false;
-        } else {
-            Block block = blockstate.getBlock();
-            if (block instanceof GameMasterBlock && !task.player.canUseGameMasterBlocks()) {
-                task.level.sendBlockUpdated(pos, blockstate, blockstate, 3);
-                return false;
-            } else if (task.player.blockActionRestricted(task.level, pos, type)) {
-                return false;
-            } else {
-                ItemStack itemStack = task.player.getMainHandItem();
-                ItemStack itemStackCopy = itemStack.copy();
-                boolean flag1 = blockstate.canHarvestBlock(task.level, pos, task.player);
 
-                if (!GroundLevelingConfigLoadHandler.LEAVES.contains(block)) itemStack.mineBlock(task.level, blockstate, pos, task.player);
+        ItemStack itemStack = task.player.getMainHandItem();
+        ItemStack itemStackCopy = itemStack.copy();
 
-                boolean flag2 = true;
-                if (itemStack.isEmpty() && !itemStackCopy.isEmpty()) {
-                    ForgeEventFactory.onPlayerDestroyItem(task.player, itemStackCopy, InteractionHand.MAIN_HAND);
-                    flag2 = false;
-                }
-                boolean flag = removeBlock(task.level, pos, task.player, flag1);
-
-                if (flag && flag1) {
-                    playerDestroy(task.level, task.player, pos, blockstate, itemStackCopy);
-                }
-
-                if (flag && exp > 0) {
-                    task.player.giveExperiencePoints(exp);
-                }
-
-                return flag2;
-            }
+        if (!GroundLevelingConfigLoadHandler.LEAVES.contains(state.getBlock())) {
+            itemStack.mineBlock(task.level, state, pos, task.player);
         }
+
+        boolean isToolBroken = itemStack.isEmpty() && !itemStackCopy.isEmpty();
+        if (isToolBroken) {
+            ForgeEventFactory.onPlayerDestroyItem(task.player, itemStackCopy, InteractionHand.MAIN_HAND);
+        }
+
+        boolean isRemoved = removeBlock(task.level, pos, state, task.player);
+        if (isRemoved) {
+            popDrops(task.level, task.player, pos, state, itemStackCopy);
+        }
+
+        int exp = ForgeHooks.onBlockBreakEvent(task.level, type, task.player, pos);
+        if (isRemoved && exp > 0) {
+            task.player.giveExperiencePoints(exp);
+        }
+
+        return isRemoved && !isToolBroken;
     }
 
-    private boolean removeBlock(ServerLevel level, BlockPos pos, ServerPlayer player, boolean canHarvest) {
-        BlockState state = level.getBlockState(pos);
-        boolean removed = state.onDestroyedByPlayer(level, pos, player, canHarvest, level.getFluidState(pos));
-        if (removed) state.getBlock().destroy(level, pos, state);
+    private boolean removeBlock(ServerLevel level, BlockPos pos, BlockState state, ServerPlayer player) {
+        boolean removed = state.onDestroyedByPlayer(level, pos, player, true, level.getFluidState(pos));
+
+        if (removed) {
+            state.getBlock().destroy(level, pos, state);
+        }
+
         return removed;
     }
 
-    private void playerDestroy(ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, ItemStack tool) {
+    private void popDrops(ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, ItemStack tool) {
         List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, tool);
+
         drops.forEach(drop -> {
             ItemEntity item = new ItemEntity(level, player.getX(), player.getY(), player.getZ(), drop.copy());
             item.setNoPickUpDelay();

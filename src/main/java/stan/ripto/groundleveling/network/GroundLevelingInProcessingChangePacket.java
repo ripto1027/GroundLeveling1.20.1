@@ -7,7 +7,6 @@ import stan.ripto.groundleveling.capability.GroundLevelingCapabilities;
 
 import java.util.function.Supplier;
 
-@SuppressWarnings("unused")
 public class GroundLevelingInProcessingChangePacket {
     private final boolean inProcessing;
 
