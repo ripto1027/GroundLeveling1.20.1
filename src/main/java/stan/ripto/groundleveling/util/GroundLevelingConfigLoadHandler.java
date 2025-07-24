@@ -6,17 +6,19 @@ import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.tags.ITagManager;
 import stan.ripto.groundleveling.config.GroundLevelingConfigs;
-import stan.ripto.groundleveling.event.GroundLevelingForgeEvents;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class GroundLevelingConfigLoadHandler {
-    public static void loadConfig() {
-        List<? extends String> breakableBlocks = GroundLevelingConfigs.BREAKABLE_BLOCKS.get();
-        List<? extends String> breakableTreeBlocks = GroundLevelingConfigs.TREE_BREAKABLE_BLOCKS.get();
+    public static Set<Block> ENABLES;
+    public static Set<Block> TREES;
+    public static Set<Block> GRASSES;
+    public static Set<Block> BLACK_LIST;
+    public static Set<Block> LEAVES;
 
+    public static void load() {
         List<? extends String> leavesBlocks = List.of(
                 "#minecraft:leaves",
                 "minecraft:brown_mushroom_block",
@@ -25,41 +27,14 @@ public class GroundLevelingConfigLoadHandler {
                 "minecraft:warped_wart_block"
         );
 
-        List<? extends String> grassesBlocks = List.of(
-                "#minecraft:flowers",
-                "minecraft:brown_mushroom",
-                "minecraft:red_mushroom",
-                "minecraft:crimson_fungus",
-                "minecraft:warped_fungus",
-                "minecraft:grass",
-                "minecraft:fern",
-                "minecraft:dead_bush",
-                "minecraft:crimson_roots",
-                "minecraft:warped_roots",
-                "minecraft:nether_sprouts",
-                "minecraft:tall_grass",
-                "minecraft:large_fern"
-        );
-
-        List<? extends String> chainBreakBlackList = List.of(
-                "minecraft:grass_block",
-                "minecraft:dirt",
-                "#forge:sand",
-                "#forge:sandstone",
-                "minecraft:gravel",
-                "#forge:stone",
-                "minecraft:netherrack",
-                "minecraft:basalt"
-        );
-
-        GroundLevelingForgeEvents.setEnables(setIds(breakableBlocks));
-        GroundLevelingForgeEvents.setTrees(setIds(breakableTreeBlocks));
-        GroundLevelingForgeEvents.setLeaves(setIds(leavesBlocks));
-        GroundLevelingForgeEvents.setGrasses(setIds(grassesBlocks));
-        GroundLevelingForgeEvents.setBlackList(setIds(chainBreakBlackList));
+        ENABLES = getBlockFromId(GroundLevelingConfigs.SERVER.ENABLES.get());
+        TREES = getBlockFromId(GroundLevelingConfigs.SERVER.TREES.get());
+        GRASSES = getBlockFromId(GroundLevelingConfigs.SERVER.GRASSES.get());
+        BLACK_LIST = getBlockFromId(GroundLevelingConfigs.SERVER.BLACK_LIST.get());
+        LEAVES = getBlockFromId(leavesBlocks);
     }
 
-    private static Set<Block> setIds(List<? extends String> lists) {
+    private static Set<Block> getBlockFromId(List<? extends String> lists) {
         Set<Block> ids = new HashSet<>();
 
         for (String li : lists) {

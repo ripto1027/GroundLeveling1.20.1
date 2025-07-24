@@ -3,46 +3,46 @@ package stan.ripto.groundleveling.command;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.electronwill.nightconfig.core.io.WritingMode;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.fml.config.ConfigTracker;
+import net.minecraftforge.fml.config.ModConfig;
 import stan.ripto.groundleveling.config.GroundLevelingConfigs;
 import stan.ripto.groundleveling.datagen.lang.TranslateKeys;
 import stan.ripto.groundleveling.util.GroundLevelingConfigLoadHandler;
 
-import java.nio.file.Path;
-
 public class GroundLevelingConfigLoadCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(Commands.literal("groundleveling")
-                .executes(context -> {
-                    if (reloadCommonConfig()) {
-                        context.getSource().sendSuccess(() -> Component.translatable(TranslateKeys.COMMAND_RESULT_SUCCESS), true);
-                    } else {
-                        context.getSource().sendFailure(Component.translatable(TranslateKeys.COMMAND_RESULT_FAIL));
-                    }
-                    return 1;
-                })
+        dispatcher.register(Commands.literal("GroundLevelingConfigReload")
+                .executes(GroundLevelingConfigLoadCommand::execute)
         );
     }
 
-    private static boolean reloadCommonConfig() {
-        try {
-            Path path = FMLPaths.CONFIGDIR.get().resolve("groundleveling-common.toml");
-            CommentedFileConfig data = CommentedFileConfig
-                                        .builder(path)
-                                        .autosave()
-                                        .sync()
-                                        .writingMode(WritingMode.REPLACE)
-                                        .build();
+    private static int execute(CommandContext<CommandSourceStack> context) {
+        ModConfig serverConfig = ConfigTracker.INSTANCE.fileMap().get("groundleveling-server.toml");
+        if (serverConfig == null) {
+            context.getSource().sendFailure(Component.translatable(TranslateKeys.COMMAND_RESULT_FAIL));
+            return 0;
+        }
 
-            data.load();
-            GroundLevelingConfigs.COMMON_CONFIG.setConfig(data);
-            GroundLevelingConfigLoadHandler.loadConfig();
-            return true;
+        try {
+            CommentedFileConfig configData =
+                    CommentedFileConfig.builder(serverConfig.getFullPath())
+                            .autosave().sync().writingMode(WritingMode.REPLACE).build();
+
+            configData.load();
+            GroundLevelingConfigs.SERVER_SPEC.setConfig(configData);
+            GroundLevelingConfigLoadHandler.load();
+
+            context.getSource().sendSuccess(() ->
+                    Component.translatable(TranslateKeys.COMMAND_RESULT_SUCCESS), true);
+
+            return 1;
         } catch (Exception e) {
-            return false;
+            context.getSource().sendFailure(Component.translatable(TranslateKeys.COMMAND_RESULT_FAIL));
+            return 0;
         }
     }
 }

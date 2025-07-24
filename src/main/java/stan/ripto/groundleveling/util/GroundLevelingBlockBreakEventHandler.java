@@ -18,25 +18,13 @@ import net.minecraftforge.event.level.BlockEvent;
 import stan.ripto.groundleveling.config.GroundLevelingConfigs;
 
 import java.util.List;
-import java.util.Set;
 
 public class GroundLevelingBlockBreakEventHandler {
-    private final Set<Block> enables;
-    private final Set<Block> trees;
-    private final Set<Block> leaves;
-    private final Set<Block> grasses;
-    private final Set<Block> blackList;
-    public final int width = GroundLevelingConfigs.WIDTH.get();
-    public final int height = GroundLevelingConfigs.HEIGHT.get();
-    public final int depth = GroundLevelingConfigs.DEPTH.get();
+    private final int width = GroundLevelingConfigs.SERVER.WIDTH.get();
+    private final int height = GroundLevelingConfigs.SERVER.HEIGHT.get();
+    private final int depth = GroundLevelingConfigs.SERVER.DEPTH.get();
 
-    public GroundLevelingBlockBreakEventHandler(Set<Block> enables, Set<Block> trees, Set<Block> leaves, Set<Block> grasses, Set<Block> blackList) {
-        this.enables = enables;
-        this.trees = trees;
-        this.leaves = leaves;
-        this.grasses = grasses;
-        this.blackList = blackList;
-    }
+    public GroundLevelingBlockBreakEventHandler() {}
 
     public void findBreakableBlocks(GroundLevelingTasks task, BlockPos origin, BlockEvent.BreakEvent event) {
         event.setCanceled(true);
@@ -79,7 +67,7 @@ public class GroundLevelingBlockBreakEventHandler {
     }
 
     private boolean isEnables(BlockPos pos, Player player, BlockState state) {
-        return enables.contains(state.getBlock()) && !(pos.getY() < player.getY()) && player.hasCorrectToolForDrops(state);
+        return GroundLevelingConfigLoadHandler.ENABLES.contains(state.getBlock()) && !(pos.getY() < player.getY()) && player.hasCorrectToolForDrops(state);
     }
 
     private boolean isOutRange(Player player, BlockPos origin, BlockPos next, Direction face) {
@@ -120,7 +108,7 @@ public class GroundLevelingBlockBreakEventHandler {
                         if (task.visited.contains(next)) continue;
 
                         Block block = task.level.getBlockState(next).getBlock();
-                        if (!trees.contains(block)) continue;
+                        if (!GroundLevelingConfigLoadHandler.TREES.contains(block)) continue;
 
                         task.queue.add(next);
                         task.found.add(next);
@@ -142,7 +130,7 @@ public class GroundLevelingBlockBreakEventHandler {
                     if (task.visited.contains(next)) continue;
 
                     Block block = task.level.getBlockState(next).getBlock();
-                    if (!isGrassesBreakable(block)) continue;
+                    if (!GroundLevelingConfigLoadHandler.GRASSES.contains(block)) continue;
 
                     task.queue.add(next);
                     task.found.add(next);
@@ -150,10 +138,6 @@ public class GroundLevelingBlockBreakEventHandler {
                 }
             }
         }
-    }
-
-    private boolean isGrassesBreakable(Block block) {
-        return grasses.contains(block);
     }
 
     private void findChainBreakables(GroundLevelingTasks task, Block originBlock) {
@@ -176,7 +160,7 @@ public class GroundLevelingBlockBreakEventHandler {
     }
 
     private boolean isChainBreakable(BlockState state, Block originBlock, Player player) {
-        return originBlock == state.getBlock() && !blackList.contains(state.getBlock()) && player.hasCorrectToolForDrops(state);
+        return originBlock == state.getBlock() && !GroundLevelingConfigLoadHandler.BLACK_LIST.contains(state.getBlock()) && player.hasCorrectToolForDrops(state);
     }
 
     public boolean destroyBlock(GroundLevelingTasks task, BlockPos pos) {
@@ -197,7 +181,7 @@ public class GroundLevelingBlockBreakEventHandler {
                 ItemStack itemStackCopy = itemStack.copy();
                 boolean flag1 = blockstate.canHarvestBlock(task.level, pos, task.player);
 
-                if (!leaves.contains(block)) itemStack.mineBlock(task.level, blockstate, pos, task.player);
+                if (!GroundLevelingConfigLoadHandler.LEAVES.contains(block)) itemStack.mineBlock(task.level, blockstate, pos, task.player);
 
                 boolean flag2 = true;
                 if (itemStack.isEmpty() && !itemStackCopy.isEmpty()) {

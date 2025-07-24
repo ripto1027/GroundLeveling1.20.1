@@ -12,7 +12,7 @@ import stan.ripto.groundleveling.network.GroundLevelingNetwork;
 @Mod.EventBusSubscriber(modid = GroundLeveling.MOD_ID)
 public class GroundLevelingModEvents {
     public static void onRegisterKeyMapping(RegisterKeyMappingsEvent event) {
-        event.register(GroundLevelingKeyMappings.TOGGLE_DESTROY);
+        event.register(GroundLevelingKeyMappings.CHANGE_MODE);
     }
 
     public static void onRegisterCapabilities(RegisterCapabilitiesEvent event) {

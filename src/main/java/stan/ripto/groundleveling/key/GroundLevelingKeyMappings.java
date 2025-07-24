@@ -8,7 +8,7 @@ import org.lwjgl.glfw.GLFW;
 import stan.ripto.groundleveling.datagen.lang.TranslateKeys;
 
 public class GroundLevelingKeyMappings {
-    public static final KeyMapping TOGGLE_DESTROY =
+    public static final KeyMapping CHANGE_MODE =
             new KeyMapping(
                     TranslateKeys.KEY_DESCRIPTION,
                     KeyConflictContext.IN_GAME,

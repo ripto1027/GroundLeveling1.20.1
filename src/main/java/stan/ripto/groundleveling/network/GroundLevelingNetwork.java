@@ -27,10 +27,26 @@ public class GroundLevelingNetwork {
 
         CHANNEL.registerMessage(
                 id++,
-                GroundLevelingSyncPacket.class,
-                GroundLevelingSyncPacket::encode,
-                GroundLevelingSyncPacket::decode,
-                GroundLevelingSyncPacket::handle
+                GroundLevelingModeSyncPacket.class,
+                GroundLevelingModeSyncPacket::encode,
+                GroundLevelingModeSyncPacket::decode,
+                GroundLevelingModeSyncPacket::handle
+        );
+
+        CHANNEL.registerMessage(
+                id++,
+                GroundLevelingModeCheckPacket.class,
+                GroundLevelingModeCheckPacket::encode,
+                GroundLevelingModeCheckPacket::decode,
+                GroundLevelingModeCheckPacket::handle
+        );
+
+        CHANNEL.registerMessage(
+                id++,
+                GroundLevelingInProcessingChangePacket.class,
+                GroundLevelingInProcessingChangePacket::encode,
+                GroundLevelingInProcessingChangePacket::decode,
+                GroundLevelingInProcessingChangePacket::handle
         );
     }
 }

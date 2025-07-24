@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -16,21 +17,24 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import stan.ripto.groundleveling.GroundLeveling;
-import stan.ripto.groundleveling.capability.GroundLevelingCapabilitySerializer;
+import stan.ripto.groundleveling.capability.GroundLevelingCapabilities;
+import stan.ripto.groundleveling.capability.GroundLevelingCapabilityProvider;
+import stan.ripto.groundleveling.capability.GroundLevelingData;
 import stan.ripto.groundleveling.command.GroundLevelingConfigLoadCommand;
 import stan.ripto.groundleveling.config.GroundLevelingConfigs;
 import stan.ripto.groundleveling.datagen.lang.TranslateKeys;
 import stan.ripto.groundleveling.key.GroundLevelingKeyMappings;
+import stan.ripto.groundleveling.network.GroundLevelingInProcessingChangePacket;
+import stan.ripto.groundleveling.network.GroundLevelingModeCheckPacket;
 import stan.ripto.groundleveling.network.GroundLevelingNetwork;
 import stan.ripto.groundleveling.network.GroundLevelingModeChangePacket;
 import stan.ripto.groundleveling.util.GroundLevelingBlockBreakEventHandler;
@@ -41,12 +45,6 @@ import java.util.*;
 
 @Mod.EventBusSubscriber(modid = GroundLeveling.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class GroundLevelingForgeEvents {
-    private static Set<Block> enables;
-    private static Set<Block> trees;
-    private static Set<Block> leaves;
-    private static Set<Block> grasses;
-    private static Set<Block> blackList;
-    private static final HashMap<UUID, Boolean> inProcessing = new HashMap<>();
     private static final List<GroundLevelingTasks> ACTIVE_TASKS = new ArrayList<>();
 
     @SubscribeEvent
@@ -55,20 +53,15 @@ public class GroundLevelingForgeEvents {
     }
 
     @SubscribeEvent
-    public static void onServerStarted(ServerStartedEvent event) {
-        GroundLevelingConfigLoadHandler.loadConfig();
-    }
-
-    @SubscribeEvent
-    public static void onAddReloadListener(AddReloadListenerEvent event) {
-        GroundLevelingConfigLoadHandler.loadConfig();
+    public static void onServerStarting(ServerStartingEvent event) {
+        GroundLevelingConfigLoadHandler.load();
     }
 
     @SuppressWarnings("InstantiationOfUtilityClass")
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
-            while (GroundLevelingKeyMappings.TOGGLE_DESTROY.consumeClick()) {
+            while (GroundLevelingKeyMappings.CHANGE_MODE.consumeClick()) {
                 GroundLevelingNetwork.CHANNEL.sendToServer(new GroundLevelingModeChangePacket());
             }
         }
@@ -81,18 +74,18 @@ public class GroundLevelingForgeEvents {
 
             while (iterator.hasNext()) {
                 GroundLevelingTasks task = iterator.next();
-                int blockPerTick = GroundLevelingConfigs.BREAK_PER_TICK.get();
+                int blockPerTick = GroundLevelingConfigs.SERVER.BREAK_PER_TICK.get();
 
                 for (int i = 0; i < blockPerTick; i++) {
                     if (task.found.isEmpty()) {
-                        inProcessing.put(task.player.getUUID(), false);
+                        GroundLevelingNetwork.CHANNEL.sendToServer(new GroundLevelingInProcessingChangePacket(false));
                         iterator.remove();
                         break;
                     }
 
                     BlockPos pos = task.found.poll();
                     if (!task.handler.destroyBlock(task, pos)) {
-                        inProcessing.put(task.player.getUUID(), false);
+                        GroundLevelingNetwork.CHANNEL.sendToServer(new GroundLevelingInProcessingChangePacket(false));
                         iterator.remove();
                         break;
                     }
@@ -104,12 +97,12 @@ public class GroundLevelingForgeEvents {
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
         Player p = event.getPlayer();
-        UUID uuid = p.getUUID();
 
-        p.getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(data -> {
+        p.getCapability(GroundLevelingCapabilities.INSTANCE).ifPresent(data -> {
             int m = data.getMode();
 
-            if (m == 0 || inProcessing.get(uuid) || p.isShiftKeyDown() || p.isCreative()) return;
+            if (m == 0 || data.isInProcessing() || p.isShiftKeyDown() || p.isCreative()) return;
+
 
             BlockHitResult hit = (BlockHitResult) p.pick(5.0D, 1.0F, false);
             Direction face = hit.getDirection();
@@ -123,27 +116,27 @@ public class GroundLevelingForgeEvents {
 
             int findType;
             if (m == 1) {
-                if (trees.contains(originBlock)) {
+                if (GroundLevelingConfigLoadHandler.TREES.contains(originBlock)) {
                     findType = 0;
-                } else if (grasses.contains(originBlock)) {
+                } else if (GroundLevelingConfigLoadHandler.GRASSES.contains(originBlock)) {
                     findType = 1;
-                } else if (!blackList.contains(originBlock)) {
+                } else if (!GroundLevelingConfigLoadHandler.BLACK_LIST.contains(originBlock)) {
                     findType = 2;
                 } else {
                     return;
                 }
             } else {
-                if (enables.contains(originBlock)) {
+                if (GroundLevelingConfigLoadHandler.ENABLES.contains(originBlock)) {
                     findType = 3;
                 } else {
                     return;
                 }
             }
 
-            inProcessing.put(uuid, true);
+            data.setInProcessing(true);
 
             GroundLevelingBlockBreakEventHandler handler =
-                    new GroundLevelingBlockBreakEventHandler(enables, trees, leaves, grasses, blackList);
+                    new GroundLevelingBlockBreakEventHandler();
 
             GroundLevelingTasks task =
                     new GroundLevelingTasks(player, level, face, findType);
@@ -160,40 +153,55 @@ public class GroundLevelingForgeEvents {
         if (event.getObject() instanceof Player) {
             event.addCapability(
                     ResourceLocation.fromNamespaceAndPath(GroundLeveling.MOD_ID, "breaker_mode"),
-                    new GroundLevelingCapabilitySerializer()
+                    new GroundLevelingCapabilityProvider()
             );
         }
     }
 
     @SubscribeEvent
     public static void onPlayerClone(PlayerEvent.Clone event) {
-        event.getOriginal()
-                .getCapability(GroundLevelingCapabilitySerializer.INSTANCE)
-                .ifPresent(o -> event.getEntity()
-                        .getCapability(GroundLevelingCapabilitySerializer.INSTANCE)
-                        .ifPresent(n ->
-                                n.setMode(o.getMode())
-                        )
-                );
-    }
+        CompoundTag originalTag = event.getOriginal().serializeNBT();
 
-    @SubscribeEvent
-    public static void onLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
-        inProcessing.put(event.getEntity().getUUID(), false);
+        if (originalTag.contains("ForgeCaps")) {
+            CompoundTag forgeCaps = originalTag.getCompound("ForgeCaps");
+
+            ResourceLocation capKey =
+                    ResourceLocation.fromNamespaceAndPath(GroundLeveling.MOD_ID, "breaker_mode");
+
+            String key = capKey.toString();
+
+            if (forgeCaps.contains(key)) {
+                CompoundTag targetTag = forgeCaps.getCompound(key);
+
+                event.getEntity().getCapability(GroundLevelingCapabilities.INSTANCE)
+                        .ifPresent(serverData -> {
+                            int currentMode = targetTag.getInt(GroundLevelingData.MODE_KEY);
+                            serverData.setMode(currentMode);
+                        });
+            }
+        }
     }
 
     @SubscribeEvent
     public static void onLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
-        inProcessing.remove(event.getEntity().getUUID());
+        if (ACTIVE_TASKS.isEmpty()) return;
+
+        UUID uuid = event.getEntity().getUUID();
+        ACTIVE_TASKS.removeIf(task -> task.player.getUUID().equals(uuid));
     }
 
+    @SuppressWarnings("InstantiationOfUtilityClass")
     @SubscribeEvent
     public static void onRenderOverlay(RenderGuiOverlayEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         if (player == null) return;
 
-        player.getCapability(GroundLevelingCapabilitySerializer.INSTANCE).ifPresent(data -> {
+        player.getCapability(GroundLevelingCapabilities.INSTANCE).ifPresent(data -> {
+            if (!data.isSynced()) {
+                GroundLevelingNetwork.CHANNEL.sendToServer(new GroundLevelingModeCheckPacket());
+            }
+
             int m = data.getMode();
 
             MutableComponent renderText;
@@ -211,25 +219,5 @@ public class GroundLevelingForgeEvents {
 
             guiGraphics.drawString(mc.font, renderText, x, y, 0xFFFFFF, false);
         });
-    }
-
-    public static void setEnables(Set<Block> blocks) {
-        enables = blocks;
-    }
-
-    public static void setTrees(Set<Block> blocks) {
-        trees = blocks;
-    }
-
-    public static void setLeaves(Set<Block> blocks) {
-        leaves = blocks;
-    }
-
-    public static void setGrasses(Set<Block> blocks) {
-        grasses = blocks;
-    }
-
-    public static void setBlackList(Set<Block> blocks) {
-        blackList = blocks;
     }
 }

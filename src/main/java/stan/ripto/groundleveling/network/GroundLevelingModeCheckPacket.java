@@ -8,23 +8,21 @@ import stan.ripto.groundleveling.capability.GroundLevelingCapabilities;
 
 import java.util.function.Supplier;
 
-@SuppressWarnings("unused")
-public class GroundLevelingModeChangePacket {
-    public GroundLevelingModeChangePacket() {}
+public class GroundLevelingModeCheckPacket {
+    public GroundLevelingModeCheckPacket() {}
 
-    public static void encode(GroundLevelingModeChangePacket packet, FriendlyByteBuf buf) {}
+    public static void encode(@SuppressWarnings("unused") GroundLevelingModeCheckPacket packet, @SuppressWarnings("unused") FriendlyByteBuf buf) {}
 
     @SuppressWarnings("InstantiationOfUtilityClass")
-    public static GroundLevelingModeChangePacket decode(FriendlyByteBuf buf) {
-        return new GroundLevelingModeChangePacket();
+    public static GroundLevelingModeCheckPacket decode(@SuppressWarnings("unused") FriendlyByteBuf buf) {
+        return new GroundLevelingModeCheckPacket();
     }
 
-    public static void handle(GroundLevelingModeChangePacket packet, Supplier<NetworkEvent.Context> context) {
+    public static void handle(@SuppressWarnings("unused") GroundLevelingModeCheckPacket packet, Supplier<NetworkEvent.Context> context) {
         context.get().enqueueWork(() -> {
             ServerPlayer player = context.get().getSender();
             if (player == null) return;
             player.getCapability(GroundLevelingCapabilities.INSTANCE).ifPresent(data -> {
-                data.changeMode();
                 int currentMode = data.getMode();
 
                 GroundLevelingNetwork.CHANNEL.send(

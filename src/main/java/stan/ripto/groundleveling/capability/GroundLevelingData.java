@@ -1,28 +1,72 @@
 package stan.ripto.groundleveling.capability;
 
-public class GroundLevelingData implements IGroundLevelingData{
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraftforge.common.util.INBTSerializable;
+
+public class GroundLevelingData implements IGroundLevelingData, INBTSerializable<Tag> {
+    public static final String MODE_KEY = "GroundLevelingMode";
+    public static final String SYNCED_KEY = "GroundLevelingSynced";
     private int mode = 0;
+    private boolean synced = false;
+    private boolean inProcessing = false;
 
     @Override
     public int getMode() {
-        return mode;
+        return this.mode;
     }
 
     @Override
     public void changeMode() {
-        if (mode == 2) {
-            mode = 0;
+        if (this.mode == 2) {
+            this.mode = 0;
         } else {
-            mode++;
+            this.mode++;
         }
     }
 
     @Override
     public void setMode(int value) {
         if (0 <= value && value <= 2) {
-            mode = value;
+            this.mode = value;
         } else {
-            mode = 0;
+            this.mode = 0;
+        }
+    }
+
+    @Override
+    public boolean isSynced() {
+        return this.synced;
+    }
+
+    @Override
+    public void setSynced(boolean value) {
+        this.synced = value;
+    }
+
+    @Override
+    public boolean isInProcessing() {
+        return this.inProcessing;
+    }
+
+    @Override
+    public void setInProcessing(boolean value) {
+        this.inProcessing = value;
+    }
+
+    @Override
+    public Tag serializeNBT() {
+        CompoundTag nbt = new CompoundTag();
+        nbt.putInt(MODE_KEY, this.mode);
+        nbt.putBoolean(SYNCED_KEY, this.synced);
+        return nbt;
+    }
+
+    @Override
+    public void deserializeNBT(Tag tag) {
+        if (tag instanceof CompoundTag nbt) {
+            this.mode = nbt.getInt(MODE_KEY);
+            this.synced = nbt.getBoolean(SYNCED_KEY);
         }
     }
 }

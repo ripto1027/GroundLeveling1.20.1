@@ -17,6 +17,6 @@ public class GroundLeveling
         bus.addListener(GroundLevelingModEvents::onRegisterKeyMapping);
         bus.addListener(GroundLevelingModEvents::onRegisterCapabilities);
         bus.addListener(GroundLevelingModEvents::onCommonSetup);
-        context.registerConfig(ModConfig.Type.COMMON, GroundLevelingConfigs.COMMON_CONFIG);
+        context.registerConfig(ModConfig.Type.SERVER, GroundLevelingConfigs.SERVER_SPEC);
     }
 }
