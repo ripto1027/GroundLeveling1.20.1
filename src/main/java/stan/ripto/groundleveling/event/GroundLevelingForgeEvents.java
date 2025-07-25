@@ -120,13 +120,13 @@ public class GroundLevelingForgeEvents {
                     findType = 0;
                 } else if (GroundLevelingConfigLoadHandler.GRASSES.contains(originBlock)) {
                     findType = 1;
-                } else if (!GroundLevelingConfigLoadHandler.BLACK_LIST.contains(originBlock)) {
+                } else if (!GroundLevelingConfigLoadHandler.BLACKLIST.contains(originBlock)) {
                     findType = 2;
                 } else {
                     return;
                 }
             } else {
-                if (GroundLevelingConfigLoadHandler.ENABLES.contains(originBlock)) {
+                if (!GroundLevelingConfigLoadHandler.DISABLES.contains(originBlock)) {
                     findType = 3;
                 } else {
                     return;

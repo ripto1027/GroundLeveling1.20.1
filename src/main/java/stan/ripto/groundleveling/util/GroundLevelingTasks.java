@@ -13,6 +13,7 @@ public class GroundLevelingTasks {
     public final Queue<BlockPos> queue = new ArrayDeque<>();
     public final Queue<BlockPos> found = new ArrayDeque<>();
     public final Set<BlockPos> visited = new HashSet<>();
+    public final List<BlockPos> willSortList = new ArrayList<>();
     public final Direction face;
     public final int findType;
 

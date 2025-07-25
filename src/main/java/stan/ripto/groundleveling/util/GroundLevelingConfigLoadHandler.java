@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.Set;
 
 public class GroundLevelingConfigLoadHandler {
-    public static Set<Block> ENABLES;
+    public static Set<Block> DISABLES;
     public static Set<Block> TREES;
     public static Set<Block> GRASSES;
-    public static Set<Block> BLACK_LIST;
+    public static Set<Block> BLACKLIST;
     public static Set<Block> LEAVES;
 
     public static void load() {
@@ -27,10 +27,10 @@ public class GroundLevelingConfigLoadHandler {
                 "minecraft:warped_wart_block"
         );
 
-        ENABLES = getBlocksFromId(GroundLevelingConfigs.SERVER.ENABLES.get());
+        DISABLES = getBlocksFromId(GroundLevelingConfigs.SERVER.DISABLES.get());
         TREES = getBlocksFromId(GroundLevelingConfigs.SERVER.TREES.get());
         GRASSES = getBlocksFromId(GroundLevelingConfigs.SERVER.GRASSES.get());
-        BLACK_LIST = getBlocksFromId(GroundLevelingConfigs.SERVER.BLACK_LIST.get());
+        BLACKLIST = getBlocksFromId(GroundLevelingConfigs.SERVER.BLACKLIST.get());
         LEAVES = getBlocksFromId(leavesBlocks);
     }
 

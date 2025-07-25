@@ -55,18 +55,19 @@ public class GroundLevelingBlockBreakEventHandler {
                 if (task.visited.contains(next)) continue;
 
                 BlockState state = task.level.getBlockState(next);
-                if (!isEnables(next, task.player, state)) continue;
+                if (!isEnables(next, task.player, state, task.level)) continue;
                 if (!isOutRange(task.player, origin, next, task.face)) continue;
 
                 task.queue.add(next);
-                task.found.add(next);
+                task.willSortList.add(next);
                 task.visited.add(next);
             }
         }
+        getSortedFound(task, origin);
     }
 
-    private boolean isEnables(BlockPos pos, Player player, BlockState state) {
-        return GroundLevelingConfigLoadHandler.ENABLES.contains(state.getBlock()) && !(pos.getY() < player.getY()) && player.hasCorrectToolForDrops(state);
+    private boolean isEnables(BlockPos pos, ServerPlayer player, BlockState state, ServerLevel level) {
+        return !GroundLevelingConfigLoadHandler.DISABLES.contains(state.getBlock()) && !state.isAir() && level.getFluidState(pos).isEmpty() && !(pos.getY() < player.getY()) && player.hasCorrectToolForDrops(state) && !state.hasBlockEntity();
     }
 
     private boolean isOutRange(Player player, BlockPos origin, BlockPos next, Direction face) {
@@ -93,6 +94,12 @@ public class GroundLevelingBlockBreakEventHandler {
             }
         }
         return dw <= width && dh >= 0 && dh <= height && dd >= 0 && dd <= depth;
+    }
+
+    private void getSortedFound(GroundLevelingTasks task, BlockPos origin) {
+        BlockPosComparators comparator = new BlockPosComparators(task, origin);
+        task.willSortList.sort(comparator.COM);
+        task.found.addAll(task.willSortList);
     }
 
     private void findTrees(GroundLevelingTasks task) {
@@ -159,11 +166,15 @@ public class GroundLevelingBlockBreakEventHandler {
     }
 
     private boolean isChainBreakable(BlockState state, Block originBlock, Player player) {
-        return originBlock == state.getBlock() && !GroundLevelingConfigLoadHandler.BLACK_LIST.contains(state.getBlock()) && player.hasCorrectToolForDrops(state);
+        return originBlock == state.getBlock() && !GroundLevelingConfigLoadHandler.BLACKLIST.contains(state.getBlock()) && player.hasCorrectToolForDrops(state);
     }
 
     public boolean destroyBlock(GroundLevelingTasks task, BlockPos pos) {
         BlockState state = task.level.getBlockState(pos);
+
+        if (!task.player.hasCorrectToolForDrops(state)) {
+            return false;
+        }
 
         GameType type = task.player.gameMode.getGameModeForPlayer();
 

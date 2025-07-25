@@ -21,67 +21,31 @@ public class GroundLevelingConfigs {
         public final ForgeConfigSpec.IntValue WIDTH;
         public final ForgeConfigSpec.IntValue HEIGHT;
         public final ForgeConfigSpec.IntValue DEPTH;
-        public final ForgeConfigSpec.ConfigValue<List<? extends String>> ENABLES;
+        public final ForgeConfigSpec.ConfigValue<List<? extends String>> DISABLES;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> TREES;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> GRASSES;
-        public final ForgeConfigSpec.ConfigValue<List<? extends String>> BLACK_LIST;
+        public final ForgeConfigSpec.ConfigValue<List<? extends String>> BLACKLIST;
 
         ServerConfigs(ForgeConfigSpec.Builder builder) {
-            builder.push("General");
+            builder.push("server");
             BREAK_PER_TICK = builder.defineInRange("BlockBreakCountPerTick", 64, 1, 1024);
             WIDTH = builder.defineInRange("WidthRadius", 3, 1, 15);
             HEIGHT = builder.defineInRange("Height", 5, 1, 16);
             DEPTH = builder.defineInRange("Depth", 16, 1, 256);
-
-            ENABLES = builder
+            builder.comment("Block registration for each list supports both IDs and tags");
+            DISABLES = builder
+                    .comment("You don't need to add blocks with block entities or fluid blocks to the blacklist")
                     .defineList(
-                            "GroundLevelingModeWhiteList",
+                            "GroundLevelingModeBlackList",
 
-                            List.of(
-                                    "#forge:cobblestone",
-                                    "#forge:ores",
-                                    "#forge:fence_gates",
-                                    "#forge:fences",
-                                    "#forge:glass",
-                                    "#forge:gravel",
-                                    "#forge:netherrack",
-                                    "#forge:obsidian",
-                                    "#forge:sand",
-                                    "#forge:sandstone",
-                                    "#forge:stone",
-                                    "#forge:storage_blocks",
-                                    "#minecraft:wool",
-                                    "#minecraft:planks",
-                                    "#minecraft:stone_bricks",
-                                    "#minecraft:logs",
-                                    "#minecraft:dirt",
-                                    "#minecraft:bamboo_blocks",
-                                    "#minecraft:stairs",
-                                    "#minecraft:slabs",
-                                    "#minecraft:walls",
-                                    "#minecraft:ice",
-                                    "#minecraft:leaves",
-                                    "#minecraft:trapdoors",
-                                    "#minecraft:beds",
-                                    "#minecraft:nylium",
-                                    "#minecraft:wart_blocks",
-                                    "#minecraft:soul_fire_base_blocks",
-                                    "#minecraft:snow",
-                                    "#minecraft:terracotta",
-                                    "minecraft:melon",
-                                    "minecraft:pumpkin",
-                                    "minecraft:dripstone_block",
-                                    "minecraft:bricks",
-                                    "minecraft:prismarine",
-                                    "minecraft:clay"
-                            ),
+                            List.of(),
 
                             o -> o instanceof String
                     );
 
             TREES = builder
                     .defineList(
-                            "TreesChainBreakerModeWhiteList",
+                            "TreesFellingWhiteList",
 
                             List.of(
                                     "#minecraft:logs",
@@ -98,7 +62,7 @@ public class GroundLevelingConfigs {
 
             GRASSES = builder
                     .defineList(
-                            "GrassesChainBreakerModeWhiteList",
+                            "MowingWhiteList",
 
                             List.of(
                                     "#minecraft:flowers",
@@ -119,7 +83,7 @@ public class GroundLevelingConfigs {
                             o -> o instanceof String
                     );
 
-            BLACK_LIST = builder
+            BLACKLIST = builder
                     .defineList(
                             "ChainBreakerModeBlackList",
 
